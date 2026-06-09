@@ -96,8 +96,8 @@ class WombatAdmin extends HTMLElement {
     const densityClass = this.density === 'compact' ? 'density-compact' : 'density-comfortable';
 
     this.innerHTML = `
-      <div class="shell page-shell ${densityClass}">
-        <section class="panel">
+      <div class="shell admin-shell ${densityClass}">
+        <section class="panel admin-panel admin-panel--hero">
           <div class="panel-inner">
             <div class="admin-hero">
               <div class="admin-hero__title">
@@ -105,14 +105,14 @@ class WombatAdmin extends HTMLElement {
                 <h1 class="title">Wombat</h1>
                 <p class="subtitle">Bekleyen yorumları onayla, istenmeyenleri kaldır ve yanıtları düzenli biçimde yayınla.</p>
               </div>
-              <div class="actions">
+              <div class="actions actions--tight">
                 <button id="logout" class="btn btn-ghost">Çıkış yap</button>
               </div>
             </div>
 
             <div class="admin-grid">
               <div class="admin-column admin-column--summary">
-                <div class="stats controls">
+                <div class="stats controls stats--dense">
                   <div class="stat"><strong>${pending.length}</strong><span>bekleyen</span></div>
                   <div class="stat"><strong>${countComments(approved)}</strong><span>yayındaki yorum</span></div>
                   <div class="stat"><strong>${approved.length}</strong><span>konu başlığı</span></div>
@@ -141,6 +141,12 @@ class WombatAdmin extends HTMLElement {
                     </div>
                     <span class="badge">${this.viewMode === 'pending' ? `${pending.length} kayıt` : `${approved.length} konu`}</span>
                   </div>
+                  <div class="context-card__body">
+                    <div class="context-card__post">
+                      <div class="context-card__post-label">Post linki</div>
+                      <div class="context-card__post-value">Yorum kartındaki bağlantıdan doğrudan açılır.</div>
+                    </div>
+                  </div>
                   <div class="context-list">
                     ${renderPageSummary(filtered)}
                   </div>
@@ -150,16 +156,16 @@ class WombatAdmin extends HTMLElement {
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel admin-panel admin-panel--body">
           <div class="panel-inner">
-            <div class="toolbar">
+            <div class="toolbar toolbar--dense">
               <div class="tabs" role="tablist" aria-label="Yorum sekmeleri">
                 <button class="tab" data-view="pending" aria-selected="${this.viewMode === 'pending'}">Onay Bekleyenler</button>
                 <button class="tab" data-view="approved" aria-selected="${this.viewMode === 'approved'}">Onaylanmış Yorumlar</button>
               </div>
               <span class="badge">${this.viewMode === 'pending' ? `${pending.length} kayıt` : `${approved.length} konu`}</span>
             </div>
-            <div class="stack" style="margin-top:16px">
+            <div class="stack stack--tight admin-list">
               ${this.viewMode === 'pending'
                 ? this.renderPending(pending)
                 : this.renderApproved(approved)}
@@ -257,6 +263,7 @@ class WombatAdmin extends HTMLElement {
 }
 
 function renderAdminThread(node: CommentThread): string {
+  const pageUrl = `/widcom.html?id=${encodeURIComponent(node.page_id)}`;
   return `
     <article class="comment-card">
       <div class="comment-meta">
@@ -273,6 +280,7 @@ function renderAdminThread(node: CommentThread): string {
         <div class="comment-context__line"><span>Parent</span><strong>${escapeHtml(node.parent_id ?? 'root')}</strong></div>
         <div class="comment-context__line"><span>Tarih</span><strong>${new Date(node.created_at).toLocaleString('tr-TR')}</strong></div>
       </div>
+      <a class="comment-link" href="${pageUrl}" target="_blank" rel="noreferrer">Post linki</a>
       <p class="comment-body">${escapeHtml(node.comment)}</p>
       <div class="actions">
         <button class="btn btn-primary" data-reply="${node.id}" data-page="${node.page_id}">Yanıt ver</button>

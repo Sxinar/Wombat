@@ -62,46 +62,29 @@ class WombatWidget extends HTMLElement {
   private view(pageId: string, thread: CommentThread[]) {
     const totalCount = countComments(thread);
     return `
-      <div class="shell compact page-shell">
-        <section class="panel quiet-panel">
-          <div class="panel-inner">
-            <div class="toolbar">
-              <div class="widget-hero">
+      <div class="shell compact widget-tight">
+        <section class="panel quiet-panel widget-compact-card">
+          <div class="panel-inner widget-compact-card__inner">
+            <div class="widget-compact-card__header">
+              <div class="widget-hero widget-hero--tight">
                 <div class="eyebrow">Wombat Widget</div>
                 <h2 class="title">Yorumlar</h2>
-                <p class="subtitle">Onaylı yorumları ve cevapları sade bir akışta gösterir.</p>
+                <p class="subtitle">Onaylı yorumlar ve cevaplar tek akışta.</p>
               </div>
-              <div class="stats">
-                <div class="stat"><strong>${totalCount}</strong><span>görünür yorum</span></div>
-                <div class="stat"><strong>1x</strong><span>kompakt akış</span></div>
+              <div class="stats stats--tight">
+                <div class="stat stat--tight"><strong>${totalCount}</strong><span>yorum</span></div>
               </div>
             </div>
-          </div>
-        </section>
 
-        <section class="panel quiet-panel widget-frame">
-          <div class="panel-inner widget-surface">
-            <div class="widget-main">
-              <div class="stack">
-                <div class="section-head">
-                  <h2>Yorum akışı</h2>
-                  <span class="badge">${thread.length ? `${thread.length} başlık` : 'boş'}</span>
-                </div>
-                <div class="stack">
-                  ${thread.length ? thread.map(renderThreadNode).join('') : `<div class="empty-state">Henüz yorum yok. İlk yorumu sen bırak.</div>`}
-                </div>
-              </div>
+            <div class="section-head section-head--tight">
+              <h2>Yorum akışı</h2>
+              <span class="badge">${thread.length ? `${thread.length} başlık` : 'boş'}</span>
             </div>
-          </div>
-        </section>
+            <div class="stack stack--tight">
+              ${thread.length ? thread.map(renderThreadNode).join('') : `<div class="empty-state empty-state--tight">Henüz yorum yok. İlk yorumu sen bırak.</div>`}
+            </div>
 
-        <section class="panel quiet-panel">
-          <div class="panel-inner">
-            <div class="section-head">
-              <h2>Yeni yorum</h2>
-              <span class="badge badge-success">Onay bekler</span>
-            </div>
-            <form id="comment-form" class="widget-form widget-form--compact">
+            <form id="comment-form" class="widget-form widget-form--compact widget-form--stacked">
               <div id="quote-preview" class="quote-preview" hidden></div>
               <div class="form-row form-row--compact">
                 <div class="field">
@@ -113,11 +96,11 @@ class WombatWidget extends HTMLElement {
                   <input class="input" id="email" name="email" type="email" placeholder="ornek@site.com" autocomplete="email" required />
                 </div>
               </div>
-              <div class="field">
-                <label for="comment">Yorum</label>
-                <textarea class="textarea" id="comment" name="comment" rows="4" placeholder="Yorumunuzu yazın" required></textarea>
-              </div>
-              <div class="actions">
+                <div class="field">
+                  <label for="comment">Yorum</label>
+                  <textarea class="textarea textarea--compact" id="comment" name="comment" rows="3" placeholder="Yorumunuzu yazın" required></textarea>
+                </div>
+              <div class="actions actions--tight">
                 <button class="btn btn-primary" type="submit">Yorumu gönder</button>
                 <button class="btn btn-ghost" type="reset">Temizle</button>
               </div>

@@ -74,6 +74,11 @@ button, input, textarea {
   padding: 12px 8px 18px;
 }
 
+.admin-shell {
+  max-width: 1360px;
+  padding: 18px 16px 28px;
+}
+
 .density-compact .panel-inner {
   padding: 14px;
 }
@@ -91,6 +96,23 @@ button, input, textarea {
   padding: 14px 0;
 }
 
+.stats--tight {
+  gap: 8px;
+}
+
+.stats--dense .stat {
+  min-width: 0;
+  flex: 1 1 160px;
+}
+
+.actions--tight {
+  gap: 8px;
+}
+
+.toolbar--dense {
+  margin-bottom: 10px;
+}
+
 .admin-hero {
   display: flex;
   align-items: flex-start;
@@ -105,7 +127,7 @@ button, input, textarea {
 
 .admin-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 1.1fr);
   gap: 16px;
   margin-top: 16px;
 }
@@ -123,6 +145,40 @@ button, input, textarea {
 .admin-column--summary .stat {
   min-width: 0;
   flex: 1 1 150px;
+}
+
+.admin-panel--hero {
+  min-height: 220px;
+}
+
+.admin-panel--body {
+  min-height: calc(100vh - 340px);
+}
+
+.context-card__body {
+  margin-bottom: 12px;
+}
+
+.context-card__post {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel-strong);
+}
+
+.context-card__post-label {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.context-card__post-value {
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .context-card {
@@ -175,6 +231,19 @@ button, input, textarea {
 .context-item__meta {
   color: var(--muted);
   font-size: 12px;
+}
+
+.comment-link {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  color: var(--accent);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.comment-link:hover {
+  text-decoration: underline;
 }
 
 .comment-context {
@@ -297,6 +366,60 @@ button, input, textarea {
   position: sticky;
   top: 12px;
   align-self: start;
+}
+
+.widget-tight {
+  max-width: 680px;
+  padding: 10px 8px 14px;
+}
+
+.widget-compact-card {
+  border-radius: 16px;
+}
+
+.widget-compact-card__inner {
+  padding: 14px;
+}
+
+.widget-compact-card__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.widget-hero--tight .title {
+  font-size: 22px;
+}
+
+.widget-hero--tight .subtitle {
+  font-size: 13px;
+}
+
+.stat--tight {
+  min-width: 92px;
+  padding: 10px 12px;
+}
+
+.section-head--tight {
+  margin-bottom: 10px;
+}
+
+.stack--tight {
+  gap: 10px;
+}
+
+.empty-state--tight {
+  padding: 14px;
+}
+
+.widget-form--stacked {
+  margin-top: 10px;
+}
+
+.widget-form--compact .field label {
+  margin-bottom: 2px;
 }
 
 .widget-form--compact {
@@ -439,6 +562,10 @@ button, input, textarea {
   border-left: 1px solid var(--border);
 }
 
+.comment-card-reply {
+  margin-left: 10px;
+}
+
 .reply-toggle {
   border: 0;
   background: transparent;
@@ -517,6 +644,23 @@ button, input, textarea {
   padding: 8px 10px;
   border-radius: 10px;
   font-size: 13px;
+}
+
+.textarea--compact {
+  min-height: 92px;
+}
+
+.widget-tight .comment-card {
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.widget-tight .comment-body {
+  font-size: 14px;
+}
+
+.widget-tight .reply-toggle {
+  font-size: 14px;
 }
 
 .field-grid {
