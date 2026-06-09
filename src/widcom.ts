@@ -63,28 +63,19 @@ class WombatWidget extends HTMLElement {
     const totalCount = countComments(thread);
     return `
       <div class="shell compact widget-tight">
-        <section class="panel quiet-panel widget-compact-card">
-          <div class="panel-inner widget-compact-card__inner">
-            <div class="widget-compact-card__header">
-              <div class="widget-hero widget-hero--tight">
-                <div class="eyebrow">Wombat Widget</div>
-                <h2 class="title">Yorumlar</h2>
-                <p class="subtitle">Onaylı yorumlar ve cevaplar tek akışta.</p>
+        <section class="widget-stack">
+          <form id="comment-form" class="panel quiet-panel widget-form widget-form--compact widget-form--stacked widget-form--plain">
+            <div class="panel-inner widget-compact-card__inner">
+              <div class="widget-compact-card__header">
+                <div class="widget-hero widget-hero--tight">
+                  <div class="eyebrow">Wombat Widget</div>
+                  <h2 class="title">Yorumlar</h2>
+                  <p class="subtitle">Onaylı yorumlar ve cevaplar tek akışta.</p>
+                </div>
+                <div class="stats stats--tight">
+                  <div class="stat stat--tight"><strong>${totalCount}</strong><span>yorum</span></div>
+                </div>
               </div>
-              <div class="stats stats--tight">
-                <div class="stat stat--tight"><strong>${totalCount}</strong><span>yorum</span></div>
-              </div>
-            </div>
-
-            <div class="section-head section-head--tight">
-              <h2>Yorum akışı</h2>
-              <span class="badge">${thread.length ? `${thread.length} başlık` : 'boş'}</span>
-            </div>
-            <div class="stack stack--tight">
-              ${thread.length ? thread.map(renderThreadNode).join('') : `<div class="empty-state empty-state--tight">Henüz yorum yok. İlk yorumu sen bırak.</div>`}
-            </div>
-
-            <form id="comment-form" class="widget-form widget-form--compact widget-form--stacked">
               <div id="quote-preview" class="quote-preview" hidden></div>
               <div class="form-row form-row--compact">
                 <div class="field">
@@ -96,17 +87,29 @@ class WombatWidget extends HTMLElement {
                   <input class="input" id="email" name="email" type="email" placeholder="ornek@site.com" autocomplete="email" required />
                 </div>
               </div>
-                <div class="field">
-                  <label for="comment">Yorum</label>
-                  <textarea class="textarea textarea--compact" id="comment" name="comment" rows="3" placeholder="Yorumunuzu yazın" required></textarea>
-                </div>
+              <div class="field">
+                <label for="comment">Yorum</label>
+                <textarea class="textarea textarea--compact" id="comment" name="comment" rows="3" placeholder="Yorumunuzu yazın" required></textarea>
+              </div>
               <div class="actions actions--tight">
                 <button class="btn btn-primary" type="submit">Yorumu gönder</button>
                 <button class="btn btn-ghost" type="reset">Temizle</button>
               </div>
               <p id="status" class="status" aria-live="polite"></p>
-            </form>
-          </div>
+            </div>
+          </form>
+
+          <section class="panel quiet-panel widget-compact-card">
+            <div class="panel-inner widget-compact-card__inner">
+              <div class="section-head section-head--tight">
+                <h2>Yorum akışı</h2>
+                <span class="badge">${thread.length ? `${thread.length} başlık` : 'boş'}</span>
+              </div>
+              <div class="stack stack--tight">
+                ${thread.length ? thread.map(renderThreadNode).join('') : `<div class="empty-state empty-state--tight">Henüz yorum yok. İlk yorumu sen bırak.</div>`}
+              </div>
+            </div>
+          </section>
         </section>
       </div>`;
   }
@@ -190,7 +193,7 @@ function renderThreadNode(node: CommentThread, depth = 0): string {
   return `
     <article class="comment-card ${depth > 0 ? 'comment-card-reply' : ''}">
       <div class="comment-meta">
-        <div class="avatar" aria-hidden="true">${escapeHtml(initials(node.name))}</div>
+        <div class="avatar avatar--plain" aria-hidden="true"></div>
         <div style="display:grid;gap:2px">
           <div class="comment-author">${escapeHtml(node.name)}</div>
           <div class="comment-date">${new Date(node.created_at).toLocaleString('tr-TR')}</div>
@@ -204,15 +207,6 @@ function renderThreadNode(node: CommentThread, depth = 0): string {
 
 function countComments(nodes: CommentThread[]): number {
   return nodes.reduce((count, node) => count + 1 + countComments(node.replies), 0);
-}
-
-function initials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('') || 'SC';
 }
 
 customElements.define('wombat-widget', WombatWidget);
