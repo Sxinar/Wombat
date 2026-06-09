@@ -370,7 +370,7 @@ button, input, textarea {
 
 .widget-tight {
   max-width: 680px;
-  padding: 10px 8px 14px;
+  padding: 8px 6px 10px;
 }
 
 .widget-compact-card {
@@ -378,7 +378,7 @@ button, input, textarea {
 }
 
 .widget-compact-card__inner {
-  padding: 14px;
+  padding: 12px;
 }
 
 .widget-compact-card__header {
@@ -386,11 +386,11 @@ button, input, textarea {
   align-items: start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .widget-hero--tight .title {
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .widget-hero--tight .subtitle {
@@ -399,23 +399,23 @@ button, input, textarea {
 
 .stat--tight {
   min-width: 92px;
-  padding: 10px 12px;
+  padding: 9px 11px;
 }
 
 .section-head--tight {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .stack--tight {
-  gap: 10px;
+  gap: 8px;
 }
 
 .empty-state--tight {
-  padding: 14px;
+  padding: 12px;
 }
 
 .widget-form--stacked {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .widget-form--compact .field label {
@@ -424,7 +424,7 @@ button, input, textarea {
 
 .widget-form--compact {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .form-row--compact {
@@ -442,9 +442,8 @@ button, input, textarea {
 .quote-preview {
   display: grid;
   gap: 6px;
-  padding: 12px;
+  padding: 10px 12px;
   border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
   border-radius: 12px;
   background: var(--bg-elevated);
 }
@@ -464,6 +463,16 @@ button, input, textarea {
 .quote-preview__body {
   line-height: 1.5;
   font-size: 13px;
+}
+
+.quote-preview::before {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.8;
 }
 
 @media (max-width: 920px) {
@@ -508,8 +517,8 @@ button, input, textarea {
 
 .comment-card {
   display: grid;
-  gap: 10px;
-  padding: 14px 0;
+  gap: 8px;
+  padding: 12px 0;
   border-top: 1px solid var(--border);
 }
 
@@ -557,13 +566,16 @@ button, input, textarea {
 
 .reply-thread {
   display: grid;
-  gap: 12px;
-  padding-left: 14px;
-  border-left: 1px solid var(--border);
+  gap: 10px;
+  padding-left: 0;
+  margin-left: 10px;
+  border-left: 0;
 }
 
 .comment-card-reply {
-  margin-left: 10px;
+  margin-left: 8px;
+  padding-left: 12px;
+  border-left: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
 }
 
 .reply-toggle {
@@ -624,7 +636,7 @@ button, input, textarea {
 
 .stat {
   min-width: 112px;
-  padding: 12px 14px;
+  padding: 11px 12px;
   border-radius: 14px;
   border: 1px solid var(--border);
   background: var(--bg-elevated);
@@ -641,7 +653,7 @@ button, input, textarea {
 }
 
 .input-inline {
-  padding: 8px 10px;
+  padding: 7px 9px;
   border-radius: 10px;
   font-size: 13px;
 }
@@ -814,7 +826,7 @@ button, input, textarea {
 }
 
 .comment-card-reply {
-  margin-left: 12px;
-  padding-left: 12px;
-  border-left: 1px solid var(--border);
+  margin-left: 8px;
+  padding-left: 10px;
+  border-left: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
 }
