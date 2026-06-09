@@ -5,9 +5,12 @@ import type { CommentRecord, CommentThread } from './types/comment';
 import { supabaseService } from './services/supabase-service';
 
 type ViewMode = 'pending' | 'approved';
+type Density = 'comfortable' | 'compact';
 
 class WombatAdmin extends HTMLElement {
   private viewMode: ViewMode = 'pending';
+  private density: Density = 'comfortable';
+  private query = '';
 
   connectedCallback() {
     document.body.classList.add('wombat-admin');
@@ -80,11 +83,20 @@ class WombatAdmin extends HTMLElement {
 
   private async renderDashboard() {
     const all = await supabaseService.listAll();
-    const pending = all.filter((c) => !c.is_approved);
-    const approved = buildThread(all.filter((c) => c.is_approved));
+    const filtered = this.query.trim()
+      ? all.filter((comment) => {
+          const q = this.query.toLowerCase();
+          return [comment.name, comment.email, comment.comment, comment.page_id].some((value) =>
+            value.toLowerCase().includes(q),
+          );
+        })
+      : all;
+    const pending = filtered.filter((c) => !c.is_approved);
+    const approved = buildThread(filtered.filter((c) => c.is_approved));
+    const densityClass = this.density === 'compact' ? 'density-compact' : 'density-comfortable';
 
     this.innerHTML = `
-      <div class="shell page-shell">
+      <div class="shell page-shell ${densityClass}">
         <section class="panel">
           <div class="panel-inner">
             <div class="toolbar">
@@ -97,10 +109,23 @@ class WombatAdmin extends HTMLElement {
                 <button id="logout" class="btn btn-ghost">Çıkış yap</button>
               </div>
             </div>
-            <div class="stats" style="margin-top:16px">
+            <div class="stats controls" style="margin-top:16px">
               <div class="stat"><strong>${pending.length}</strong><span>bekleyen</span></div>
               <div class="stat"><strong>${countComments(approved)}</strong><span>yayındaki yorum</span></div>
               <div class="stat"><strong>${approved.length}</strong><span>konu başlığı</span></div>
+              <div class="stat">
+                <strong>Arama</strong>
+                <span><input id="query" class="input input-inline" value="${escapeHtml(this.query)}" placeholder="isim, email, yorum" /></span>
+              </div>
+              <div class="stat">
+                <strong>Yoğunluk</strong>
+                <span>
+                  <select id="density" class="input input-inline">
+                    <option value="comfortable" ${this.density === 'comfortable' ? 'selected' : ''}>Rahat</option>
+                    <option value="compact" ${this.density === 'compact' ? 'selected' : ''}>Kompakt</option>
+                  </select>
+                </span>
+              </div>
             </div>
           </div>
         </section>
@@ -168,6 +193,16 @@ class WombatAdmin extends HTMLElement {
         this.viewMode = button.dataset.view as ViewMode;
         await this.renderDashboard();
       });
+    });
+
+    this.querySelector<HTMLInputElement>('#query')?.addEventListener('input', async (event) => {
+      this.query = (event.currentTarget as HTMLInputElement).value;
+      await this.renderDashboard();
+    });
+
+    this.querySelector<HTMLSelectElement>('#density')?.addEventListener('change', async (event) => {
+      this.density = (event.currentTarget as HTMLSelectElement).value as Density;
+      await this.renderDashboard();
     });
 
     this.querySelectorAll<HTMLButtonElement>('[data-approve]').forEach((button) => {

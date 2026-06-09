@@ -74,6 +74,23 @@ button, input, textarea {
   padding: 12px 8px 18px;
 }
 
+.density-compact .panel-inner {
+  padding: 14px;
+}
+
+.density-compact .comment-card {
+  padding: 12px 0;
+}
+
+.density-compact .stat {
+  min-width: 96px;
+  padding: 10px 12px;
+}
+
+.density-comfortable .comment-card {
+  padding: 14px 0;
+}
+
 .page-shell {
   display: grid;
   gap: 18px;
@@ -301,6 +318,12 @@ button, input, textarea {
 .stat span {
   color: var(--muted);
   font-size: 12px;
+}
+
+.input-inline {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
 }
 
 .field-grid {

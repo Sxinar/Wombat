@@ -69,7 +69,7 @@ class WombatWidget extends HTMLElement {
               </div>
               <div class="stats">
                 <div class="stat"><strong>${totalCount}</strong><span>görünür yorum</span></div>
-                <div class="stat"><strong>Auto</strong><span>tema uyumu</span></div>
+                <div class="stat"><strong>1x</strong><span>kompakt akış</span></div>
               </div>
             </div>
           </div>
@@ -105,7 +105,7 @@ class WombatWidget extends HTMLElement {
                 </div>
                 <div class="field">
                   <label for="comment">Yorum</label>
-                  <textarea class="textarea" id="comment" name="comment" rows="7" placeholder="Yorumunuzu yazın" required></textarea>
+                  <textarea class="textarea" id="comment" name="comment" rows="6" placeholder="Yorumunuzu yazın" required></textarea>
                 </div>
                 <div class="actions">
                   <button class="btn btn-primary" type="submit">Yorumu gönder</button>
@@ -199,7 +199,7 @@ class WombatWidget extends HTMLElement {
   }
 }
 
-function renderThreadNode(node: CommentThread): string {
+function renderThreadNode(node: CommentThread, depth = 0): string {
   return `
     <article class="comment-card">
       <div class="comment-meta">
@@ -210,18 +210,19 @@ function renderThreadNode(node: CommentThread): string {
         </div>
       </div>
       <p class="comment-body">${escapeHtml(node.comment)}</p>
-      <button class="reply-toggle" data-reply-open="${node.id}">Yanıtla</button>
-      <form class="reply-form" data-reply-form="${node.id}" hidden>
-        <input class="input" data-reply-name="${node.id}" placeholder="İsminiz" autocomplete="name" required />
-        <input class="input" data-reply-email="${node.id}" type="email" placeholder="E-posta" autocomplete="email" required />
-        <textarea class="textarea" data-reply-comment="${node.id}" rows="4" placeholder="Yanıtınız" required></textarea>
-        <div class="actions">
-          <button class="btn btn-primary" type="submit" data-reply-submit="${node.id}">Yanıtı gönder</button>
-          <button class="btn btn-ghost" type="button" data-reply-cancel="${node.id}">Vazgeç</button>
-        </div>
-        <p class="status" data-reply-status="${node.id}" aria-live="polite"></p>
-      </form>
-      ${node.replies.length ? `<div class="reply-thread">${node.replies.map(renderThreadNode).join('')}</div>` : ''}
+      ${depth === 0 ? `<button class="reply-toggle" data-reply-open="${node.id}">Yanıtla</button>` : ''}
+      ${depth === 0 ? `
+        <form class="reply-form" data-reply-form="${node.id}" hidden>
+          <input class="input" data-reply-name="${node.id}" placeholder="İsminiz" autocomplete="name" required />
+          <input class="input" data-reply-email="${node.id}" type="email" placeholder="E-posta" autocomplete="email" required />
+          <textarea class="textarea" data-reply-comment="${node.id}" rows="4" placeholder="Yanıtınız" required></textarea>
+          <div class="actions">
+            <button class="btn btn-primary" type="submit" data-reply-submit="${node.id}">Yanıtı gönder</button>
+            <button class="btn btn-ghost" type="button" data-reply-cancel="${node.id}">Vazgeç</button>
+          </div>
+          <p class="status" data-reply-status="${node.id}" aria-live="polite"></p>
+        </form>` : ''}
+      ${node.replies.length ? `<div class="reply-thread">${node.replies.map((child) => renderThreadNode(child, depth + 1)).join('')}</div>` : ''}
     </article>`;
 }
 
