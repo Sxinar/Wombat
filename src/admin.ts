@@ -10,6 +10,7 @@ class WombatAdmin extends HTMLElement {
   private viewMode: ViewMode = 'pending';
 
   connectedCallback() {
+    document.body.classList.add('wombat-admin');
     void this.render();
   }
 
@@ -25,7 +26,7 @@ class WombatAdmin extends HTMLElement {
 
   private loadingView() {
     return `
-      <div class="shell">
+      <div class="shell page-shell">
         <section class="panel">
           <div class="panel-inner">Yönetim paneli hazırlanıyor...</div>
         </section>
@@ -90,7 +91,7 @@ class WombatAdmin extends HTMLElement {
               <div class="hero">
                 <div class="eyebrow">Yönetim Paneli</div>
                 <h1 class="title">Wombat</h1>
-                <p class="subtitle">Bekleyen yorumları onayla, istenmeyenleri kaldır, cevapları anında yayınla.</p>
+                <p class="subtitle">Bekleyen yorumları onayla, istenmeyenleri kaldır ve yanıtları düzenli biçimde yayınla.</p>
               </div>
               <div class="actions">
                 <button id="logout" class="btn btn-ghost">Çıkış yap</button>

@@ -26,6 +26,10 @@ Bu proje iki ana yüz içerir:
    - Onaylar, siler, yanıtlar
    - Yanıtları `parent_id` ile ağaç yapısına bağlar
 
+3. Bildirim webhook'u
+   - Yeni yorum geldiğinde Supabase içinden dış servise HTTP POST atabilir
+   - Mail, Slack, Discord, Telegram veya kendi backend'in üzerinden bildirim akışı kurabilirsin
+
 ## Özellikler
 
 - TypeScript ile yazılmış modern frontend
@@ -35,6 +39,7 @@ Bu proje iki ana yüz içerir:
 - Light / dark mode otomatik uyum
 - Widget içinde yorum ağacı görünümü
 - Self-host için uygun build çıktısı
+- Yeni yorum için webhook tabanlı bildirim desteği
 
 ## Dosya Yapısı
 
@@ -80,6 +85,7 @@ Bu script şunları oluşturur:
 - `created_at` alanı
 - RLS aktifliği
 - anon ve authenticated policy'leri
+- yeni yorumlar için webhook trigger'ı
 
 ### 4. Admin hesabı oluştur
 
@@ -89,6 +95,24 @@ Bu kullanıcı:
 - admin paneline giriş yapacak
 - yorumları onaylayacak
 - silme ve yanıt işlemlerini gerçekleştirecek
+
+### 5. Bildirim webhook'unu bağla
+
+Yeni yorum geldiğinde mail ya da başka bir servis üzerinden bildirim almak istiyorsan, Supabase veritabanı ayarına webhook URL'i tanımla.
+
+Örnek:
+
+```sql
+alter database postgres set app.settings.comment_webhook_url = 'https://YOUR-WEBHOOK-URL';
+```
+
+Bu URL bir mail servisi, kendi API'n, bir Edge Function ya da otomasyon aracı olabilir.
+
+Webhook tetikleyici şu durumda çalışır:
+
+- `public.comments` tablosuna yeni kayıt eklendiğinde
+- ister `is_approved = false` durumunu, ister admin yanıtlarını haber vermek için kullanabilirsin
+- payload içinde yorumun ID, sayfa ID, üst yorum ID, isim, e-posta, içerik ve zaman bilgisi bulunur
 
 ## Geliştirme
 
@@ -259,6 +283,16 @@ Bu model üretim kullanımı için iyi bir başlangıçtır. Daha sıkı üretim
 - Widget: `https://comments.example.com/widcom.html?id=post-123`
 - Admin: `https://comments.example.com/admin.html`
 
+### Webhook ile mail bildirimi
+
+Mail bildirimi için en pratik yol:
+
+1. Supabase trigger'ı yeni yorumu webhook'a post eder
+2. Sen bu webhook'u bir mail servisine bağlarsın
+3. Servis maili üretir ve gönderir
+
+Bu sayede Wombat içinde e-posta sunucu kurmadan bildirim akışı elde edersin.
+
 Admin panelini mümkünse:
 - ayrı subdomain
 - IP kısıtı
@@ -354,6 +388,13 @@ Bir sonraki adımda eklenebilecekler:
 - iframe genişliği yeterli mi?
 - yayınlanan dosyada `dist/` içeriği var mı?
 - CSS dosyası doğru yükleniyor mu?
+
+### Webhook çalışmıyor
+
+- `app.settings.comment_webhook_url` tanımlı mı?
+- webhook URL'i erişilebilir mi?
+- Supabase SQL'de `pg_net` extension açık mı?
+- webhook servisi JSON POST kabul ediyor mu?
 
 ## Kısa Özet
 

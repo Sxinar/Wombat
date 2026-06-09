@@ -40,11 +40,18 @@
 html, body {
   margin: 0;
   min-height: 100%;
+  color: var(--text);
+}
+
+body.wombat-widget {
+  background: transparent;
+}
+
+body.wombat-admin {
   background:
     radial-gradient(circle at top left, rgba(59, 130, 246, 0.09), transparent 28%),
     radial-gradient(circle at top right, rgba(16, 185, 129, 0.06), transparent 22%),
     var(--bg);
-  color: var(--text);
 }
 
 button, input, textarea {
@@ -60,6 +67,11 @@ button, input, textarea {
   max-width: 1080px;
   margin: 0 auto;
   padding: 24px 16px 36px;
+}
+
+.shell.compact {
+  max-width: 760px;
+  padding: 12px 8px 18px;
 }
 
 .page-shell {
@@ -109,6 +121,10 @@ button, input, textarea {
   backdrop-filter: blur(14px);
 }
 
+.widget-panel {
+  background: var(--panel-strong);
+}
+
 .panel-inner {
   padding: 18px;
 }
@@ -117,6 +133,14 @@ button, input, textarea {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
   gap: 18px;
+}
+
+.widget-layout {
+  grid-template-columns: 1fr;
+}
+
+.widget-layout .widget-form {
+  max-width: 100%;
 }
 
 @media (max-width: 920px) {
@@ -203,6 +227,24 @@ button, input, textarea {
   gap: 12px;
   padding-left: 14px;
   border-left: 1px solid var(--border);
+}
+
+.reply-toggle {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  padding: 0;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.reply-form {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-elevated);
 }
 
 .toolbar {
@@ -385,4 +427,28 @@ button, input, textarea {
   padding: 18px;
   border-top: 1px solid var(--border);
   background: linear-gradient(180deg, transparent, rgba(59, 130, 246, 0.03));
+}
+
+.widget-form {
+  display: grid;
+  gap: 12px;
+}
+
+.widget-hero {
+  display: grid;
+  gap: 4px;
+}
+
+.widget-hero .title {
+  font-size: 22px;
+}
+
+.widget-hero .subtitle {
+  font-size: 14px;
+}
+
+.quiet-panel {
+  background: transparent;
+  border-color: var(--border);
+  box-shadow: none;
 }

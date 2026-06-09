@@ -6,6 +6,7 @@ import { supabaseService } from './services/supabase-service';
 
 class WombatWidget extends HTMLElement {
   connectedCallback() {
+    document.body.classList.add('wombat-widget');
     void this.render();
   }
 
@@ -26,16 +27,16 @@ class WombatWidget extends HTMLElement {
 
   private loadingView() {
     return `
-      <div class="shell">
-        <section class="panel">
+      <div class="shell compact">
+        <section class="panel quiet-panel">
           <div class="panel-inner">
             <div class="toolbar">
-              <div>
+              <div class="widget-hero">
                 <div class="eyebrow">Wombat Widget</div>
-                <h2 class="title" style="font-size:22px;margin-top:10px">Yorumlar yükleniyor</h2>
+                <h2 class="title">Yorumlar yükleniyor</h2>
               </div>
             </div>
-            <div class="empty-state" style="margin-top:16px">Yorumlar hazırlanıyor...</div>
+            <div class="empty-state" style="margin-top:12px">Yorumlar hazırlanıyor...</div>
           </div>
         </section>
       </div>`;
@@ -43,8 +44,8 @@ class WombatWidget extends HTMLElement {
 
   private errorView() {
     return `
-      <div class="shell">
-        <section class="panel">
+      <div class="shell compact">
+        <section class="panel quiet-panel">
           <div class="panel-inner">
             <div class="badge badge-warning">Hata</div>
             <h2 class="title" style="font-size:22px;margin-top:10px">Yorumlar şu anda alınamadı</h2>
@@ -57,25 +58,25 @@ class WombatWidget extends HTMLElement {
   private view(pageId: string, thread: CommentThread[]) {
     const totalCount = countComments(thread);
     return `
-      <div class="shell page-shell">
-        <section class="panel">
+      <div class="shell compact page-shell">
+        <section class="panel quiet-panel">
           <div class="panel-inner">
             <div class="toolbar">
-              <div class="hero">
+              <div class="widget-hero">
                 <div class="eyebrow">Wombat Widget</div>
                 <h2 class="title">Yorumlar</h2>
-                <p class="subtitle">Onaylı yorumları ve cevapları temiz, sakin bir akışta gösterir.</p>
+                <p class="subtitle">Onaylı yorumları ve cevapları sade bir akışta gösterir.</p>
               </div>
               <div class="stats">
                 <div class="stat"><strong>${totalCount}</strong><span>görünür yorum</span></div>
-                <div class="stat"><strong>Auto</strong><span>light / dark</span></div>
+                <div class="stat"><strong>Auto</strong><span>tema uyumu</span></div>
               </div>
             </div>
           </div>
         </section>
 
-        <section class="split">
-          <div class="panel">
+        <section class="split widget-layout">
+          <div class="panel quiet-panel">
             <div class="panel-inner">
               <div class="section-head">
                 <h2>Yorum akışı</h2>
@@ -87,13 +88,13 @@ class WombatWidget extends HTMLElement {
             </div>
           </div>
 
-          <div class="panel">
+          <div class="panel quiet-panel widget-form">
             <div class="form-card">
               <div class="section-head">
                 <h2>Yeni yorum</h2>
                 <span class="badge badge-success">Onay bekler</span>
               </div>
-              <form id="comment-form" class="field-grid">
+              <form id="comment-form" class="widget-form">
                 <div class="field">
                   <label for="name">İsim</label>
                   <input class="input" id="name" name="name" placeholder="Adınız" autocomplete="name" required />
@@ -145,6 +146,56 @@ class WombatWidget extends HTMLElement {
         submit.disabled = false;
       }
     });
+
+    this.querySelectorAll<HTMLButtonElement>('[data-reply-open]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const id = button.dataset.replyOpen!;
+        const replyForm = this.querySelector<HTMLFormElement>(`[data-reply-form="${id}"]`);
+        replyForm?.removeAttribute('hidden');
+        button.setAttribute('hidden', 'true');
+      });
+    });
+
+    this.querySelectorAll<HTMLButtonElement>('[data-reply-cancel]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const id = button.dataset.replyCancel!;
+        const replyForm = this.querySelector<HTMLFormElement>(`[data-reply-form="${id}"]`);
+        const replyToggle = this.querySelector<HTMLButtonElement>(`[data-reply-open="${id}"]`);
+        replyForm?.setAttribute('hidden', 'true');
+        replyToggle?.removeAttribute('hidden');
+      });
+    });
+
+    this.querySelectorAll<HTMLFormElement>('[data-reply-form]').forEach((replyForm) => {
+      replyForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const id = replyForm.dataset.replyForm!;
+        const replyStatus = this.querySelector<HTMLElement>(`[data-reply-status="${id}"]`);
+        const replyName = this.querySelector<HTMLInputElement>(`[data-reply-name="${id}"]`);
+        const replyEmail = this.querySelector<HTMLInputElement>(`[data-reply-email="${id}"]`);
+        const replyComment = this.querySelector<HTMLTextAreaElement>(`[data-reply-comment="${id}"]`);
+        const replyToggle = this.querySelector<HTMLButtonElement>(`[data-reply-open="${id}"]`);
+        if (!replyStatus || !replyName || !replyEmail || !replyComment || !replyToggle) return;
+
+        replyStatus.textContent = 'Gönderiliyor...';
+        try {
+          await supabaseService.createComment({
+            pageId,
+            parentId: id,
+            name: replyName.value.trim(),
+            email: replyEmail.value.trim(),
+            comment: replyComment.value.trim(),
+          });
+          replyForm.reset();
+          replyForm.setAttribute('hidden', 'true');
+          replyToggle.removeAttribute('hidden');
+          replyStatus.textContent = 'Yanıtınız gönderildi.';
+        } catch (error) {
+          console.error(error);
+          replyStatus.textContent = 'Yanıt gönderilemedi.';
+        }
+      });
+    });
   }
 }
 
@@ -159,6 +210,17 @@ function renderThreadNode(node: CommentThread): string {
         </div>
       </div>
       <p class="comment-body">${escapeHtml(node.comment)}</p>
+      <button class="reply-toggle" data-reply-open="${node.id}">Yanıtla</button>
+      <form class="reply-form" data-reply-form="${node.id}" hidden>
+        <input class="input" data-reply-name="${node.id}" placeholder="İsminiz" autocomplete="name" required />
+        <input class="input" data-reply-email="${node.id}" type="email" placeholder="E-posta" autocomplete="email" required />
+        <textarea class="textarea" data-reply-comment="${node.id}" rows="4" placeholder="Yanıtınız" required></textarea>
+        <div class="actions">
+          <button class="btn btn-primary" type="submit" data-reply-submit="${node.id}">Yanıtı gönder</button>
+          <button class="btn btn-ghost" type="button" data-reply-cancel="${node.id}">Vazgeç</button>
+        </div>
+        <p class="status" data-reply-status="${node.id}" aria-live="polite"></p>
+      </form>
       ${node.replies.length ? `<div class="reply-thread">${node.replies.map(renderThreadNode).join('')}</div>` : ''}
     </article>`;
 }
