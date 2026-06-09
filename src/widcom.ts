@@ -5,6 +5,9 @@ import type { CommentThread } from './types/comment';
 import { supabaseService } from './services/supabase-service';
 
 class WombatWidget extends HTMLElement {
+  private quoteTarget: CommentThread | null = null;
+  private currentThread: CommentThread[] = [];
+
   connectedCallback() {
     document.body.classList.add('wombat-widget');
     void this.render();
@@ -17,6 +20,7 @@ class WombatWidget extends HTMLElement {
     try {
       const comments = await supabaseService.listApproved(pageId);
       const thread = buildThread(comments);
+      this.currentThread = thread;
       this.innerHTML = this.view(pageId, thread);
       this.bindForm(pageId);
     } catch (error) {
@@ -75,26 +79,31 @@ class WombatWidget extends HTMLElement {
           </div>
         </section>
 
-        <section class="split widget-layout">
-          <div class="panel quiet-panel">
-            <div class="panel-inner">
-              <div class="section-head">
-                <h2>Yorum akışı</h2>
-                <span class="badge">${thread.length ? `${thread.length} başlık` : 'boş'}</span>
-              </div>
+        <section class="panel quiet-panel widget-frame">
+          <div class="panel-inner widget-surface">
+            <div class="widget-main">
               <div class="stack">
-                ${thread.length ? thread.map(renderThreadNode).join('') : `<div class="empty-state">Henüz yorum yok. İlk yorumu sen bırak.</div>`}
+                <div class="section-head">
+                  <h2>Yorum akışı</h2>
+                  <span class="badge">${thread.length ? `${thread.length} başlık` : 'boş'}</span>
+                </div>
+                <div class="stack">
+                  ${thread.length ? thread.map(renderThreadNode).join('') : `<div class="empty-state">Henüz yorum yok. İlk yorumu sen bırak.</div>`}
+                </div>
               </div>
             </div>
           </div>
+        </section>
 
-          <div class="panel quiet-panel widget-form">
-            <div class="form-card">
-              <div class="section-head">
-                <h2>Yeni yorum</h2>
-                <span class="badge badge-success">Onay bekler</span>
-              </div>
-              <form id="comment-form" class="widget-form">
+        <section class="panel quiet-panel">
+          <div class="panel-inner">
+            <div class="section-head">
+              <h2>Yeni yorum</h2>
+              <span class="badge badge-success">Onay bekler</span>
+            </div>
+            <form id="comment-form" class="widget-form widget-form--compact">
+              <div id="quote-preview" class="quote-preview" hidden></div>
+              <div class="form-row form-row--compact">
                 <div class="field">
                   <label for="name">İsim</label>
                   <input class="input" id="name" name="name" placeholder="Adınız" autocomplete="name" required />
@@ -103,17 +112,17 @@ class WombatWidget extends HTMLElement {
                   <label for="email">E-posta</label>
                   <input class="input" id="email" name="email" type="email" placeholder="ornek@site.com" autocomplete="email" required />
                 </div>
-                <div class="field">
-                  <label for="comment">Yorum</label>
-                  <textarea class="textarea" id="comment" name="comment" rows="6" placeholder="Yorumunuzu yazın" required></textarea>
-                </div>
-                <div class="actions">
-                  <button class="btn btn-primary" type="submit">Yorumu gönder</button>
-                  <button class="btn btn-ghost" type="reset">Temizle</button>
-                </div>
-                <p id="status" class="status" aria-live="polite"></p>
-              </form>
-            </div>
+              </div>
+              <div class="field">
+                <label for="comment">Yorum</label>
+                <textarea class="textarea" id="comment" name="comment" rows="4" placeholder="Yorumunuzu yazın" required></textarea>
+              </div>
+              <div class="actions">
+                <button class="btn btn-primary" type="submit">Yorumu gönder</button>
+                <button class="btn btn-ghost" type="reset">Temizle</button>
+              </div>
+              <p id="status" class="status" aria-live="polite"></p>
+            </form>
           </div>
         </section>
       </div>`;
@@ -123,6 +132,8 @@ class WombatWidget extends HTMLElement {
     const form = this.querySelector<HTMLFormElement>('#comment-form');
     const status = this.querySelector<HTMLElement>('#status');
     const submit = this.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const quotePreview = this.querySelector<HTMLElement>('#quote-preview');
+    const quoteComment = this.querySelector<HTMLTextAreaElement>('#comment');
 
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -133,11 +144,13 @@ class WombatWidget extends HTMLElement {
         const data = new FormData(form);
         await supabaseService.createComment({
           pageId,
+          parentId: this.quoteTarget?.id ?? null,
           name: String(data.get('name') ?? '').trim(),
           email: String(data.get('email') ?? '').trim(),
           comment: String(data.get('comment') ?? '').trim(),
         });
         form.reset();
+        this.clearQuote();
         status.textContent = 'Yorumunuz onay bekliyor.';
       } catch (error) {
         console.error(error);
@@ -147,61 +160,52 @@ class WombatWidget extends HTMLElement {
       }
     });
 
-    this.querySelectorAll<HTMLButtonElement>('[data-reply-open]').forEach((button) => {
+    this.querySelectorAll<HTMLButtonElement>('[data-quote]').forEach((button) => {
       button.addEventListener('click', () => {
-        const id = button.dataset.replyOpen!;
-        const replyForm = this.querySelector<HTMLFormElement>(`[data-reply-form="${id}"]`);
-        replyForm?.removeAttribute('hidden');
-        button.setAttribute('hidden', 'true');
-      });
-    });
-
-    this.querySelectorAll<HTMLButtonElement>('[data-reply-cancel]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const id = button.dataset.replyCancel!;
-        const replyForm = this.querySelector<HTMLFormElement>(`[data-reply-form="${id}"]`);
-        const replyToggle = this.querySelector<HTMLButtonElement>(`[data-reply-open="${id}"]`);
-        replyForm?.setAttribute('hidden', 'true');
-        replyToggle?.removeAttribute('hidden');
-      });
-    });
-
-    this.querySelectorAll<HTMLFormElement>('[data-reply-form]').forEach((replyForm) => {
-      replyForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const id = replyForm.dataset.replyForm!;
-        const replyStatus = this.querySelector<HTMLElement>(`[data-reply-status="${id}"]`);
-        const replyName = this.querySelector<HTMLInputElement>(`[data-reply-name="${id}"]`);
-        const replyEmail = this.querySelector<HTMLInputElement>(`[data-reply-email="${id}"]`);
-        const replyComment = this.querySelector<HTMLTextAreaElement>(`[data-reply-comment="${id}"]`);
-        const replyToggle = this.querySelector<HTMLButtonElement>(`[data-reply-open="${id}"]`);
-        if (!replyStatus || !replyName || !replyEmail || !replyComment || !replyToggle) return;
-
-        replyStatus.textContent = 'Gönderiliyor...';
-        try {
-          await supabaseService.createComment({
-            pageId,
-            parentId: id,
-            name: replyName.value.trim(),
-            email: replyEmail.value.trim(),
-            comment: replyComment.value.trim(),
-          });
-          replyForm.reset();
-          replyForm.setAttribute('hidden', 'true');
-          replyToggle.removeAttribute('hidden');
-          replyStatus.textContent = 'Yanıtınız gönderildi.';
-        } catch (error) {
-          console.error(error);
-          replyStatus.textContent = 'Yanıt gönderilemedi.';
+        const id = button.dataset.quote!;
+        const target = this.findThreadNode(this.currentThread, id);
+        if (!target) return;
+        this.quoteTarget = target;
+        if (quotePreview && quoteComment) {
+          quotePreview.hidden = false;
+          quotePreview.innerHTML = `
+            <div class="quote-preview__label">Alıntı</div>
+            <div class="quote-preview__meta">${escapeHtml(target.name)} · ${new Date(target.created_at).toLocaleString('tr-TR')}</div>
+            <div class="quote-preview__body">${escapeHtml(target.comment)}</div>`;
+          quoteComment.placeholder = `@${target.name} alıntısı üzerine yazın`;
         }
       });
     });
+
+    form?.addEventListener('reset', () => {
+      this.clearQuote();
+      if (quotePreview) quotePreview.hidden = true;
+      if (quoteComment) quoteComment.placeholder = 'Yorumunuzu yazın';
+      this.quoteTarget = null;
+    });
+  }
+
+  private clearQuote() {
+    const quotePreview = this.querySelector<HTMLElement>('#quote-preview');
+    const quoteComment = this.querySelector<HTMLTextAreaElement>('#comment');
+    if (quotePreview) quotePreview.hidden = true;
+    if (quoteComment) quoteComment.placeholder = 'Yorumunuzu yazın';
+    this.quoteTarget = null;
+  }
+
+  private findThreadNode(nodes: CommentThread[], id: string): CommentThread | null {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      const child = this.findThreadNode(node.replies, id);
+      if (child) return child;
+    }
+    return null;
   }
 }
 
 function renderThreadNode(node: CommentThread, depth = 0): string {
   return `
-    <article class="comment-card">
+    <article class="comment-card ${depth > 0 ? 'comment-card-reply' : ''}">
       <div class="comment-meta">
         <div class="avatar" aria-hidden="true">${escapeHtml(initials(node.name))}</div>
         <div style="display:grid;gap:2px">
@@ -210,18 +214,7 @@ function renderThreadNode(node: CommentThread, depth = 0): string {
         </div>
       </div>
       <p class="comment-body">${escapeHtml(node.comment)}</p>
-      ${depth === 0 ? `<button class="reply-toggle" data-reply-open="${node.id}">Yanıtla</button>` : ''}
-      ${depth === 0 ? `
-        <form class="reply-form" data-reply-form="${node.id}" hidden>
-          <input class="input" data-reply-name="${node.id}" placeholder="İsminiz" autocomplete="name" required />
-          <input class="input" data-reply-email="${node.id}" type="email" placeholder="E-posta" autocomplete="email" required />
-          <textarea class="textarea" data-reply-comment="${node.id}" rows="4" placeholder="Yanıtınız" required></textarea>
-          <div class="actions">
-            <button class="btn btn-primary" type="submit" data-reply-submit="${node.id}">Yanıtı gönder</button>
-            <button class="btn btn-ghost" type="button" data-reply-cancel="${node.id}">Vazgeç</button>
-          </div>
-          <p class="status" data-reply-status="${node.id}" aria-live="polite"></p>
-        </form>` : ''}
+      ${depth === 0 ? `<button class="reply-toggle" data-quote="${node.id}">Alıntıla</button>` : ''}
       ${node.replies.length ? `<div class="reply-thread">${node.replies.map((child) => renderThreadNode(child, depth + 1)).join('')}</div>` : ''}
     </article>`;
 }

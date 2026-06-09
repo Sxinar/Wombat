@@ -99,8 +99,8 @@ class WombatAdmin extends HTMLElement {
       <div class="shell page-shell ${densityClass}">
         <section class="panel">
           <div class="panel-inner">
-            <div class="toolbar">
-              <div class="hero">
+            <div class="admin-hero">
+              <div class="admin-hero__title">
                 <div class="eyebrow">Yönetim Paneli</div>
                 <h1 class="title">Wombat</h1>
                 <p class="subtitle">Bekleyen yorumları onayla, istenmeyenleri kaldır ve yanıtları düzenli biçimde yayınla.</p>
@@ -109,22 +109,42 @@ class WombatAdmin extends HTMLElement {
                 <button id="logout" class="btn btn-ghost">Çıkış yap</button>
               </div>
             </div>
-            <div class="stats controls" style="margin-top:16px">
-              <div class="stat"><strong>${pending.length}</strong><span>bekleyen</span></div>
-              <div class="stat"><strong>${countComments(approved)}</strong><span>yayındaki yorum</span></div>
-              <div class="stat"><strong>${approved.length}</strong><span>konu başlığı</span></div>
-              <div class="stat">
-                <strong>Arama</strong>
-                <span><input id="query" class="input input-inline" value="${escapeHtml(this.query)}" placeholder="isim, email, yorum" /></span>
+
+            <div class="admin-grid">
+              <div class="admin-column admin-column--summary">
+                <div class="stats controls">
+                  <div class="stat"><strong>${pending.length}</strong><span>bekleyen</span></div>
+                  <div class="stat"><strong>${countComments(approved)}</strong><span>yayındaki yorum</span></div>
+                  <div class="stat"><strong>${approved.length}</strong><span>konu başlığı</span></div>
+                  <div class="stat">
+                    <strong>Arama</strong>
+                    <span><input id="query" class="input input-inline" value="${escapeHtml(this.query)}" placeholder="isim, email, yorum, sayfa" /></span>
+                  </div>
+                  <div class="stat">
+                    <strong>Yoğunluk</strong>
+                    <span>
+                      <select id="density" class="input input-inline">
+                        <option value="comfortable" ${this.density === 'comfortable' ? 'selected' : ''}>Rahat</option>
+                        <option value="compact" ${this.density === 'compact' ? 'selected' : ''}>Kompakt</option>
+                      </select>
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div class="stat">
-                <strong>Yoğunluk</strong>
-                <span>
-                  <select id="density" class="input input-inline">
-                    <option value="comfortable" ${this.density === 'comfortable' ? 'selected' : ''}>Rahat</option>
-                    <option value="compact" ${this.density === 'compact' ? 'selected' : ''}>Kompakt</option>
-                  </select>
-                </span>
+
+              <div class="admin-column admin-column--context">
+                <div class="context-card">
+                  <div class="context-card__header">
+                    <div>
+                      <div class="context-label">Sayfa Bağlamı</div>
+                      <div class="context-title">Yorumların ait olduğu içerikler</div>
+                    </div>
+                    <span class="badge">${this.viewMode === 'pending' ? `${pending.length} kayıt` : `${approved.length} konu`}</span>
+                  </div>
+                  <div class="context-list">
+                    ${renderPageSummary(filtered)}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -247,6 +267,12 @@ function renderAdminThread(node: CommentThread): string {
         </div>
         <span class="badge badge-success">Yayında</span>
       </div>
+      <div class="comment-context">
+        <div class="comment-context__line"><span>Sayfa</span><strong>${escapeHtml(node.page_id)}</strong></div>
+        <div class="comment-context__line"><span>ID</span><strong>${escapeHtml(node.id)}</strong></div>
+        <div class="comment-context__line"><span>Parent</span><strong>${escapeHtml(node.parent_id ?? 'root')}</strong></div>
+        <div class="comment-context__line"><span>Tarih</span><strong>${new Date(node.created_at).toLocaleString('tr-TR')}</strong></div>
+      </div>
       <p class="comment-body">${escapeHtml(node.comment)}</p>
       <div class="actions">
         <button class="btn btn-primary" data-reply="${node.id}" data-page="${node.page_id}">Yanıt ver</button>
@@ -266,6 +292,27 @@ function initials(name: string): string {
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
     .join('') || 'SC';
+}
+
+function renderPageSummary(comments: CommentRecord[]): string {
+  if (!comments.length) {
+    return '<div class="empty-state">Aramaya uyan kayıt yok.</div>';
+  }
+
+  const pages = new Map<string, number>();
+  for (const comment of comments) {
+    pages.set(comment.page_id, (pages.get(comment.page_id) ?? 0) + 1);
+  }
+
+  return Array.from(pages.entries())
+    .map(
+      ([pageId, count]) => `
+        <div class="context-item">
+          <div class="context-item__title">${escapeHtml(pageId)}</div>
+          <div class="context-item__meta">${count} yorum</div>
+        </div>`,
+    )
+    .join('');
 }
 
 customElements.define('wombat-admin', WombatAdmin);
