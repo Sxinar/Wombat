@@ -68,11 +68,14 @@ Proje kökünde `.env` oluştur:
 ```env
 VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY
+VITE_BASE_PATH=/
 ```
 
 Not:
 - `anon` key frontend'de kullanılabilir.
 - `service_role` key kesinlikle frontend'e konmamalıdır.
+- GitHub Pages kullanıyorsan `VITE_BASE_PATH=/Wombat/` yap.
+- Vercel, Netlify, Cloudflare Pages ve kendi root domain'in için `VITE_BASE_PATH=/` kullan.
 
 ### 3. Supabase SQL'i çalıştır
 
