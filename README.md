@@ -9,7 +9,7 @@ Proje özellikle şu kullanım senaryoları için tasarlandı:
 - Supabase ile hızlı başlangıç
 - İleride PocketBase'e geçebilecek servis katmanı
 
-## Ne Kuruyoruz?
+## Ne Kuruyorum?
 
 Bu proje iki ana yüz içerir:
 
