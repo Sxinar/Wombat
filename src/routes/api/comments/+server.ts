@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
-import { supabase } from '$lib/supabase';
+import { supabaseAdmin } from '$lib/supabase.server';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,7 +26,7 @@ export async function GET({ url }: RequestEvent) {
   }
 
   // Fetch the thread first to ensure it exists and get its ID
-  const { data: thread, error: threadError } = await supabase
+  const { data: thread, error: threadError } = await supabaseAdmin
     .from('threads')
     .select('id')
     .eq('project_id', appId)
@@ -39,7 +39,7 @@ export async function GET({ url }: RequestEvent) {
   }
 
   // Fetch approved comments
-  const { data: comments, error: commentsError } = await supabase
+  const { data: comments, error: commentsError } = await supabaseAdmin
     .from('comments')
     .select('*')
     .eq('thread_id', thread.id)
@@ -52,7 +52,7 @@ export async function GET({ url }: RequestEvent) {
 
   const commentIds = (comments || []).map((comment) => comment.id);
   const reactions = commentIds.length > 0
-    ? (await supabase
+    ? (await supabaseAdmin
         .from('comment_reactions')
         .select('comment_id, emoji')
         .in('comment_id', commentIds)).data
@@ -143,7 +143,7 @@ export async function POST({ request }: RequestEvent) {
     }
 
     const rateKey = `comment:${getClientIp(request)}`;
-    const { data: allowed } = await supabase.rpc('check_abuse_limit', {
+    const { data: allowed } = await supabaseAdmin.rpc('check_abuse_limit', {
       p_scope: rateKey,
       p_max_count: COMMENT_LIMIT_MAX,
       p_window_seconds: COMMENT_LIMIT_WINDOW_SECONDS
@@ -157,7 +157,7 @@ export async function POST({ request }: RequestEvent) {
     // Wait, UPSERT on Supabase (PostgREST) requires the exact constraints or using an RPC.
     // Let's try select first, then insert if not found.
     let threadId = null;
-    let { data: thread } = await supabase
+    let { data: thread } = await supabaseAdmin
       .from('threads')
       .select('id')
       .eq('project_id', normalizedAppId)
@@ -167,7 +167,7 @@ export async function POST({ request }: RequestEvent) {
     if (thread) {
       threadId = thread.id;
     } else {
-      const { data: newThread, error: insertThreadError } = await supabase
+      const { data: newThread, error: insertThreadError } = await supabaseAdmin
         .from('threads')
         .insert({
           project_id: normalizedAppId,
@@ -187,7 +187,7 @@ export async function POST({ request }: RequestEvent) {
     // For now, we'll default to 'pending' as Wombat does.
     const status = 'pending'; 
 
-    const { data: comment, error: commentError } = await supabase
+    const { data: comment, error: commentError } = await supabaseAdmin
       .from('comments')
       .insert({
         thread_id: threadId,
@@ -225,7 +225,7 @@ export async function PATCH({ request }: RequestEvent) {
       return json({ error: 'Invalid reaction payload' }, { status: 400, headers: corsHeaders });
     }
 
-    const { data: comment } = await supabase
+    const { data: comment } = await supabaseAdmin
       .from('comments')
       .select('id, thread_id, status')
       .eq('id', commentId)
@@ -236,7 +236,7 @@ export async function PATCH({ request }: RequestEvent) {
     }
 
     const rateKey = `reaction:${getClientIp(request)}`;
-    const { data: allowed } = await supabase.rpc('check_abuse_limit', {
+    const { data: allowed } = await supabaseAdmin.rpc('check_abuse_limit', {
       p_scope: rateKey,
       p_max_count: REACTION_LIMIT_MAX,
       p_window_seconds: REACTION_LIMIT_WINDOW_SECONDS
@@ -246,7 +246,7 @@ export async function PATCH({ request }: RequestEvent) {
       return json({ error: 'Too many requests' }, { status: 429, headers: corsHeaders });
     }
 
-    const { data: existingReaction } = await supabase
+    const { data: existingReaction } = await supabaseAdmin
       .from('comment_reactions')
       .select('id')
       .eq('comment_id', commentId)
@@ -255,7 +255,7 @@ export async function PATCH({ request }: RequestEvent) {
       .maybeSingle();
 
     if (action === 'remove' || (action === 'toggle' && existingReaction)) {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('comment_reactions')
         .delete()
         .eq('comment_id', commentId)
@@ -270,7 +270,7 @@ export async function PATCH({ request }: RequestEvent) {
       return json({ success: true, removed: true }, { headers: corsHeaders });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('comment_reactions')
       .insert({
         comment_id: commentId,
