@@ -1,0 +1,276 @@
+<svelte:options customElement="wombat-widget" />
+
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { marked } from 'marked';
+  import DOMPurify from 'dompurify';
+  import CommentItem from './CommentItem.svelte';
+
+  export let appid: string = '';
+  export let pageid: string = '';
+  export let pagetitle: string = '';
+  export let pageurl: string = '';
+  export let host: string = ''; // The URL where the SvelteKit API is hosted
+
+  type Comment = {
+    id: string;
+    parent_id: string | null;
+    content: string;
+    author_name: string;
+    created_at: string;
+    is_admin: boolean;
+    children?: Comment[];
+  };
+
+  let comments = $state<Comment[]>([]);
+  let loading = $state(true);
+  let error = $state('');
+
+  let newCommentContent = $state('');
+  let newCommentAuthor = $state('');
+  let newCommentEmail = $state('');
+
+  let submitting = $state(false);
+  let successMessage = $state('');
+  let replyToId = $state<string | null>(null);
+
+  onMount(async () => {
+    if (!host) {
+      host = window.location.origin;
+    }
+    await fetchComments();
+  });
+
+  async function fetchComments() {
+    try {
+      loading = true;
+      const url = new URL(`${host}/api/comments`);
+      url.searchParams.set('appId', appid);
+      url.searchParams.set('pageId', pageid);
+      
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error('Failed to load comments');
+      const data = await res.json();
+      comments = buildCommentTree(data.comments || []);
+    } catch (err: any) {
+      error = err.message;
+    } finally {
+      loading = false;
+    }
+  }
+
+  function buildCommentTree(flatComments: Comment[]): Comment[] {
+    const map = new Map<string, Comment>();
+    const roots: Comment[] = [];
+
+    flatComments.forEach(c => {
+      map.set(c.id, { ...c, children: [] });
+    });
+
+    flatComments.forEach(c => {
+      if (c.parent_id) {
+        const parent = map.get(c.parent_id);
+        if (parent) {
+          parent.children!.push(map.get(c.id)!);
+        }
+      } else {
+        roots.push(map.get(c.id)!);
+      }
+    });
+
+    return roots;
+  }
+
+  function parseMarkdown(content: string) {
+    const rawHtml = marked.parse(content) as string;
+    return DOMPurify.sanitize(rawHtml);
+  }
+
+  async function submitComment(e: Event) {
+    e.preventDefault();
+    if (!newCommentContent.trim() || !newCommentAuthor.trim()) return;
+
+    try {
+      submitting = true;
+      const url = `${host}/api/comments`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appId: appid,
+          pageId: pageid,
+          pageTitle: pagetitle || document.title,
+          pageUrl: pageurl || window.location.href,
+          content: newCommentContent,
+          authorName: newCommentAuthor,
+          authorEmail: newCommentEmail,
+          parentId: replyToId
+        })
+      });
+
+      if (!res.ok) throw new Error('Submission failed');
+      const data = await res.json();
+
+      newCommentContent = '';
+      if (data.status === 'pending') {
+        successMessage = 'Your comment is awaiting moderation.';
+      } else {
+        successMessage = 'Comment posted successfully.';
+        await fetchComments();
+      }
+
+      replyToId = null;
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      submitting = false;
+      setTimeout(() => successMessage = '', 5000);
+    }
+  }
+
+  function formatDate(isoString: string) {
+    return new Date(isoString).toLocaleDateString(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+</script>
+
+<div class="wombat-wrapper">
+  {#if error}
+    <div class="error">{error}</div>
+  {/if}
+
+  <div class="comments-list">
+    {#if loading}
+      <div class="loading">Loading comments...</div>
+    {:else if comments.length === 0}
+      <div class="empty">No comments yet. Be the first!</div>
+    {:else}
+      {#each comments as comment}
+        <CommentItem
+          {comment}
+          onReply={(id) => { replyToId = id; }}
+        />
+      {/each}
+    {/if}
+  </div>
+
+  <div class="form-wrapper">
+    {#if replyToId}
+      <div class="replying-notice">
+        Replying to a comment
+        <button on:click={() => replyToId = null}>Cancel</button>
+      </div>
+    {/if}
+
+    {#if successMessage}
+      <div class="success">{successMessage}</div>
+    {/if}
+
+    <form on:submit={submitComment}>
+      <div class="input-row">
+        <input type="text" placeholder="Name" bind:value={newCommentAuthor} required />
+        <input type="email" placeholder="Email (optional)" bind:value={newCommentEmail} />
+      </div>
+      <textarea placeholder="Write a comment... (Markdown supported)" bind:value={newCommentContent} required rows="4"></textarea>
+      <div class="actions">
+        <button type="submit" disabled={submitting}>
+          {submitting ? 'Submitting...' : 'Send'}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  :host {
+    display: block;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #374151;
+  }
+  * { box-sizing: border-box; }
+  .wombat-wrapper {
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  .form-wrapper {
+    margin-top: 2rem;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 1.5rem;
+  }
+  input, textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    background: #fff;
+    color: inherit;
+    margin-bottom: 0.75rem;
+  }
+  textarea { resize: vertical; }
+  .input-row {
+    display: flex;
+    gap: 0.75rem;
+  }
+  .input-row input { flex: 1; }
+  button {
+    background: #111827;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  button:hover { opacity: 0.9; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .replying-notice {
+    font-size: 0.875rem;
+    background: #f3f4f6;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .replying-notice button {
+    background: transparent;
+    color: #ef4444;
+    padding: 0;
+  }
+  .success {
+    background: #dcfce7;
+    color: #166534;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+  .error { color: #ef4444; font-size: 0.875rem; margin-bottom: 1rem; }
+  .loading, .empty {
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.875rem;
+    padding: 2rem 0;
+  }
+
+  /* Responsive dark mode */
+  @media (prefers-color-scheme: dark) {
+    :host { color: #d1d5db; }
+    .form-wrapper { border-color: #374151; }
+    input, textarea {
+      background: #1f2937;
+      border-color: #374151;
+      color: #f3f4f6;
+    }
+    button { background: #e5e7eb; color: #111827; }
+    .replying-notice { background: #374151; }
+    .success { background: #064e3b; color: #34d399; }
+  }
+</style>
