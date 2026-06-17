@@ -28,6 +28,7 @@
     author_name: string;
     created_at: string;
     is_admin: boolean;
+    reactions?: Record<string, number>;
     children?: Comment[];
   };
 
@@ -132,6 +133,35 @@
     }
   }
 
+  function getReactorKey() {
+    const storageKey = 'wombat-reactor-key';
+    let key = localStorage.getItem(storageKey);
+    if (!key) {
+      key = crypto.randomUUID();
+      localStorage.setItem(storageKey, key);
+    }
+    return key;
+  }
+
+  async function reactToComment(commentId: string, emoji: string) {
+    try {
+      const res = await fetch(`${host}/api/comments`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commentId,
+          emoji,
+          reactorKey: getReactorKey(),
+          action: 'toggle'
+        })
+      });
+      if (!res.ok) throw new Error('Reaction failed');
+      await fetchComments();
+    } catch (err: any) {
+      error = err.message;
+    }
+  }
+
   function formatDate(isoString: string) {
     return new Date(isoString).toLocaleDateString(undefined, {
       year: 'numeric', month: 'short', day: 'numeric',
@@ -155,6 +185,7 @@
         <CommentItem
           {comment}
           onReply={(id: string) => { replyToId = id; }}
+          onReact={reactToComment}
         />
       {/each}
     {/if}
@@ -190,8 +221,8 @@
 <style>
   :host {
     display: block;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #374151;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #09090b;
   }
   * { box-sizing: border-box; }
   .wombat-wrapper {
@@ -200,14 +231,14 @@
   }
   .form-wrapper {
     margin-top: 2rem;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid #e4e4e7;
     padding-top: 1.5rem;
   }
   input, textarea {
     width: 100%;
     padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
+    border: 1px solid #d4d4d8;
+    border-radius: 0.875rem;
     font-size: 0.875rem;
     font-family: inherit;
     background: #fff;
@@ -221,7 +252,7 @@
   }
   .input-row input { flex: 1; }
   button {
-    background: #111827;
+    background: #09090b;
     color: #fff;
     border: none;
     padding: 0.5rem 1rem;
@@ -235,7 +266,7 @@
   button:disabled { opacity: 0.5; cursor: not-allowed; }
   .replying-notice {
     font-size: 0.875rem;
-    background: #f3f4f6;
+    background: #fafafa;
     padding: 0.5rem;
     border-radius: 0.375rem;
     margin-bottom: 0.75rem;
@@ -249,17 +280,17 @@
     padding: 0;
   }
   .success {
-    background: #dcfce7;
-    color: #166534;
+    background: #fafafa;
+    color: #09090b;
     padding: 0.75rem;
     border-radius: 0.375rem;
     font-size: 0.875rem;
     margin-bottom: 1rem;
   }
-  .error { color: #ef4444; font-size: 0.875rem; margin-bottom: 1rem; }
+  .error { color: #7f1d1d; font-size: 0.875rem; margin-bottom: 1rem; }
   .loading, .empty {
     text-align: center;
-    color: #6b7280;
+    color: #a1a1aa;
     font-size: 0.875rem;
     padding: 2rem 0;
   }

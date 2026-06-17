@@ -1,313 +1,216 @@
+# Wombat
 
-# Wombat Yorum Widget'ı – Türkçe README
-
-> **Wombat**, Supabase ile çalışan, Svelte‑Kit tabanlı hafif bir yorum sistemidir.  
-> Tek bir script (`widget.js`) ile herhangi bir statik ya da Svelte‑Kit sitesine kolayca entegre edilebilir.
-
----
-
-## 📦 İçindekiler
-- [Özellikler](#özellikler)
-- [Kurulum](#kurulum)
-- [Ortam Değişkenleri (`.env`)](#ortam-değişkenleri-env)
-- [Widget'ı Sayfaya Ekleme](#widgetı-sayfaya-ekleme)
-- [Supabase Şeması](#supabase-şeması)
-- [Geliştirme ve Çalıştırma](#geliştirme-ve-çalıştırma)
-- [Yayına Alma (Production)](#yayına-alma-production)
-- [Sık Karşılaşılan Sorunlar](#sık-karşılaşılan-sorunlar)
-- [Katkıda Bulunma](#katkıda-bulunma)
-- [Lisans](#lisans)
-
----
+Wombat, Supabase ve SvelteKit ile yazılmış hafif bir yorum platformudur. Tek bir widget script'i ile herhangi bir siteye gömülebilir; panelden yorumlar yönetilir, admin kullanıcılar ise ek analiz kartlarını ve admin yönetimini görür.
 
 ## Özellikler
-- **Sıfırdan kurulum** – sadece bir `.env` dosyası ve bir script yeterli.
-- **Markdown desteği** – `marked` ve `DOMPurify` ile güvenli render.
-- **Cevap ve yanıtlayan yorum** – `parent_id` üzerinden hiyerarşik yorumlar.
-- **Admin (moderasyon) desteği** – `is_admin` flag’i ile admin yorumları.
-- **Dark‑mode uyumu** – CSS `prefers-color-scheme` desteği.
-- **Supabase ile tam uyumlu** – veri depolama, oturum açma ve CORS otomatik ayarları.
 
----
+- Hafif widget ve gömme kolaylığı
+- Markdown + DOMPurify ile güvenli içerik render'ı
+- Thread yapısı ile yanıt verme desteği
+- Emoji reaksiyonları
+- Admin panelinde proje bazlı yorum yönetimi
+- Admin kullanıcılar için dashboard istatistikleri
+- Admin rol yönetimi
+- Supabase RLS tabanlı erişim kontrolü
+- Yorum ve reaksiyonlar için oran sınırlama
+
+## Teknoloji
+
+- SvelteKit
+- Supabase
+- TypeScript
+- Marked
+- DOMPurify
 
 ## Kurulum
 
-1. **Depoyu klonlayın**  
+1. Depoyu klonlayın.
    ```bash
-   git clone https://github.com/your-username/wombat-widget.git
-   cd wombat-widget
+   git clone <repo-url>
+   cd wombat
    ```
-
-2. **Bağımlılıkları yükleyin** (npm, pnpm ya da yarn kullanabilirsiniz)  
+2. Bağımlılıkları yükleyin.
    ```bash
-   npm install    # veya: pnpm install / yarn install
+   npm install
    ```
+3. Supabase projesi oluşturun.
+4. `supabase/migrations/00000_init.sql` içindeki SQL'i çalıştırın.
+5. `.env` dosyasını oluşturun.
 
-3. **Supabase projesi oluşturun**  
-   - https://supabase.com/ adresinden ücretsiz bir proje açın.  
-   - `auth`, `threads` ve `comments` tablolarını oluşturmak için `supabase/migrations/00000_init.sql` dosyasındaki SQL’i çalıştırın (Supabase UI > SQL > New Query).
-
-4. **`.env` dosyasını ayarlayın** (aşağıda detaylar).
-
-5. **Geliştirme sunucusunu başlatın**  
-   ```bash
-   npm run dev
-   ```
-
-   Tarayıcıda `http://localhost:5173` adresine gidin, widget’ın çalıştığını doğrulayın.
-
----
-
-## Ortam Değişkenleri (`.env`)
-
-Projenin kök dizininde bir `.env` dosyası oluşturun ve aşağıdaki satırları ekleyin.  
-Değerleri Supabase projenizden alın.
+## Ortam Değişkenleri
 
 ```dotenv
-# Supabase URL ve anon key (Supabase > Settings > API)
 VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI...
-
-# (Opsiyonel) Wombat widget’ının barındırıldığı host
-# (Hem local geliştirme hem de prod ortamda aynı kalabilir)
-WIDGET_HOST=https://wombatc.vercel.app
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-> **Not:** `VITE_` ile başlayan değişkenler Vite tarafından otomatik olarak `import.meta.env` içinde kullanılabilir.
+İsteğe bağlı olarak widget host'unu da ayrı bir ortam değişkeniyle kullanabilirsiniz. Uygulama içinde widget, mevcut origin'i de kullanabilir.
 
----
+## Admin Oluşturma
 
-## Widget'ı Sayfaya Ekleme
+Mevcut bir admin, dashboard ana sayfasındaki `Admin yönetimi` alanından başka bir kullanıcıya admin yetkisi verebilir.
 
-### 1️⃣ HTML Snippet (Svelte‑Kit)
+İlk admin'i başlatmak için Supabase SQL Editor'da bir kez şu komutu çalıştırın:
 
-```svelte
-<script lang="ts">
-  // Sayfa‑özgü verileri (ID, başlık, URL) örnek
-  export let data;   // SvelteKit load() fonksiyonundan gelen veri
-  const postId   = data?.post?.id ?? 'unknown-id';
-  const postTitle = data?.post?.title ?? document.title;
-  const postUrl   = `${window.location.origin}${window.location.pathname}`;
-</script>
-
-<!-- Wombat yorum alanı -->
-<div
-  id="wombat_thread"
-  data-host="{import.meta.env.VITE_SUPABASE_URL}"
-  data-appid="eae7e901-dc94-40b5-ad11-99a9077fe672"
-  data-pageid="{postId}"
-  data-pagetitle="{postTitle}"
-  data-pageurl="{postUrl}"
-></div>
-
-<!-- Widget script’i (asenkron) -->
-<script async defer src="https://wombatc.vercel.app/widget.js"></script>
+```sql
+update public.profiles
+set is_admin = true
+where email = 'admin@example.com';
 ```
 
-> **Önemli:** `data-appid` değerini **kendi APP ID’niz** ile değiştirin. `data-host` Supabase URL’niz (veya API hostunuz) olmalı.
+Sonrasında admin yetkileri panel üzerinden güvenli RPC ile yönetilir.
 
-### 2️⃣ Statik HTML (Jekyll / Hugo / Markdown)
+## Geliştirme
+
+```bash
+npm run dev
+```
+
+Kontrol:
+
+```bash
+npm run check
+```
+
+Üretim build'i:
+
+```bash
+npm run build
+```
+
+Widget build'i:
+
+```bash
+npm run build:widget
+```
+
+## Mimari
+
+### Ana akış
+
+- Kullanıcı `/auth` ekranından giriş yapar veya kayıt olur.
+- `/dashboard` altında projelerini görür.
+- Bir proje içinde yorumları onaylar, siler ve yanıtlar.
+- Widget, `/api/comments` üzerinden yorumları çeker ve yeni yorumları aynı endpoint'e gönderir.
+- Reaksiyonlar aynı API üzerinden güvenli biçimde yönetilir.
+
+### Dashboard erişimi
+
+- Kullanıcı giriş yapmadıysa `/auth`'a yönlendirilir.
+- Proje sayfaları, kullanıcının sahip olmadığı `project_id` için açılmaz.
+- `profiles.is_admin = true` olan kullanıcılar dashboard ana sayfasında ek analiz kartları görür.
+- `profiles.is_admin = true` olan kullanıcılar admin yönetim kartını görür.
+
+## Widget Kullanımı
+
+Dashboard içindeki `Settings` sekmesinde üretilen örnek snippet şuna benzer:
 
 ```html
 <div id="wombat_thread"
-     data-host="https://YOUR-PROJECT.supabase.co"
-     data-appid="eae7e901-dc94-40b5-ad11-99a9077fe672"
-     data-pageid="{{ page.id }}"
-     data-pagetitle="{{ page.title | xml_escape }}"
-     data-pageurl="{{ site.url }}{{ page.url }}">
-</div>
-
-<script async defer src="https://wombatc.vercel.app/widget.js"></script>
+  data-host="https://your-domain.com"
+  data-app-id="PROJECT_ID"
+  data-page-id="PAGE_ID"
+  data-page-url="PAGE_URL"
+  data-page-title="PAGE_TITLE"
+></div>
+<script async defer src="https://your-domain.com/widget.js"></script>
 ```
 
-> `{{ page.id }}` ve `{{ page.title }}` gibi Liquid/Markdown değişkenlerini kendi static site motorunuza göre uyarlayın.
+Notlar:
 
----
+- `data-app-id` proje kimliğidir.
+- `data-page-id` her sayfa için benzersiz olmalıdır.
+- `data-page-url` ve `data-page-title` mümkünse gerçek sayfa verileriyle doldurulmalıdır.
 
-## Supabase Şeması
+## Veri Modeli
 
-`supabase/migrations/00000_init.sql` içinde tanımlanan tablolar:
+Ana tablolar:
 
-```sql
--- Threads (her sayfa için bir thread)
-create table threads (
-  id uuid primary key default uuid_generate_v4(),
-  project_id text not null,
-  page_id text not null,
-  page_title text,
-  page_url text,
-  created_at timestamp with time zone default now()
-);
+- `profiles`
+- `projects`
+- `threads`
+- `comments`
+- `comment_reactions`
+- `abuse_limits`
 
--- Comments
-create table comments (
-  id uuid primary key default uuid_generate_v4(),
-  thread_id uuid references threads(id) on delete cascade,
-  parent_id uuid references comments(id),
-  content text not null,
-  author_name text not null,
-  author_email text,
-  is_admin boolean default false,
-  status text check (status in ('pending','approved','rejected')) default 'pending',
-  created_at timestamp with time zone default now()
-);
-```
+### `comments`
 
-- **`status = 'approved'`** yorumlar listelenirken gösterilir.  
-- Admin (yönetici) yorumlarını `is_admin = true` ile işaretleyebilirsiniz.  
+- `status`: `pending`, `approved`, `spam`
+- `is_admin`: admin yorumlarını ayırmak için kullanılır
+- `parent_id`: yanıt ağacı oluşturur
 
----
+### `comment_reactions`
 
-## Geliştirme ve Çalıştırma
+- Her yorum için emoji reaksiyonlarını tutar
+- Aynı kullanıcı/cihaz için aynı emoji tekrar eklenirse toggle mantığıyla kaldırılabilir
+- Reaksiyonlar IP bazlı oran sınırlamasına tabidir.
 
-| Komut | Açıklama |
-|------|----------|
-| `npm run dev` | Vite dev server (localhost:5173). Hot‑reload aktif. |
-| `npm run build` | Projeyi `dist/` klasörüne üret (production bundle). |
-| `npm run preview` | `npm run build` sonrası statik server ile çıktıyı test et. |
-| `npm run lint` | ESLint + Prettier ile kod kalitesini kontrol eder. |
-| `npm run test` | (Henüz test yok, ileride Jest/Svelte‑Testing‑Library eklenebilir.) |
+## Güvenlik
 
----
+- Tüm yorum render'ı Markdown + DOMPurify ile temizlenir.
+- Yorum gönderiminde input normalizasyonu uygulanır.
+- Widget API'si origin uyumu kontrol eder.
+- Dashboard tarafında proje sahipliği kontrol edilir.
+- Dış bağlantılarda `rel="noreferrer noopener"` kullanılır.
+- Yorum ve reaksiyon endpoint'lerinde IP bazlı oran sınırlama uygulanır.
+- Admin rol değişiklikleri `SECURITY DEFINER` RPC ile yapılır ve yalnızca mevcut adminlerce çalıştırılabilir.
 
-## Yayına Alma (Production)
+## Admin Analitikleri
 
-1. **Build**  
-   ```bash
-   npm run build
-   ```
+Admin kullanıcılar dashboard ana sayfasında şu özetleri görür:
 
-2. **Static dosyaları Vercel / Netlify / Cloudflare Pages** gibi bir CDN’ye yükleyin. `widget.js` otomatik olarak Vercel’de (`https://wombatc.vercel.app/widget.js`) barındırılıyor, **dış script** olduğu için ayrı bir adım gerekmez.
+- Toplam proje sayısı
+- Toplam yorum sayısı
+- Bekleyen yorum sayısı
+- Onaylı yorum sayısı
+- Son 7 gündeki yorum sayısı
+- Toplam reaksiyon sayısı
 
-3. **Ortam değişkenlerini production’da ayarlayın**  
-   - Vercel → Settings → Environment Variables  
-   - Netlify → Build & Deploy → Environment  
+## Reaksiyonlar
 
-   `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` değerlerini production anahtarlarıyla değiştirin.
+Widget'ta varsayılan emoji seti:
 
----
+- `👍`
+- `❤️`
+- `😂`
+- `🎉`
 
-## Sık Karşılaşılan Sorunlar
+Reaksiyonlar public olarak okunur ve aynı kullanıcı için toggle mantığıyla değiştirilebilir.
 
-| Sorun | Neden | Çözüm |
-|------|-------|-------|
-| **`Uncaught DOMException: CustomElementRegistry.define: 'cusdis-clone' has already been defined`** | `widget.js` iki kez yüklendi (örn. hem layout’da hem sayfada <script> eklenmiş) | `widget.js` scriptini yalnızca bir kez, genellikle `src/routes/+layout.svelte` içinde ekleyin ve diğer yerlerde kaldırın. |
-| **Yorumlar gelmiyor – 401/403** | Supabase URL veya `anon‑key` eksik/yanlış | `.env` dosyasındaki `VITE_SUPABASE_URL` ve `V
-İki parça düşün:
+## Sık Sorulanlar
 
-- \`widcom.html\` için halka açık bir statik URL
-- \`admin.html\` için daha kontrollü bir alan
+### Yorumlar neden görünmüyor?
 
-Örnek:
+- `appId` ile `pageId` eşleşiyor mu kontrol edin.
+- Yorumun `approved` durumunda olduğundan emin olun.
+- Supabase RLS politikalarının uygulanmış olduğunu doğrulayın.
 
-- Widget: \`https://comments.example.com/widcom.html?id=post-123\`
-- Admin: \`https://comments.example.com/admin.html\`
+### Widget neden iki kez görünüyor?
 
-Admin panelini mümkünse:
+- Aynı sayfada `widget.js` birden fazla yüklenmiş olabilir.
+- Sadece tek bir `wombat_thread` container kullanın.
 
-- ayrı subdomain
-- IP kısıtı
-- ek giriş politikası
+### Admin kartları neden görünmüyor?
 
-ile daha kontrollü hale getir.
+- `profiles.is_admin` alanı `true` olmalı.
+- Kullanıcı gerçekten giriş yapmış olmalı.
 
-## Test Akışı
+## Proje Yapısı
 
-### Widget testi
+- `src/routes/api/comments/+server.ts`: yorum ve reaksiyon API'si
+- `src/routes/dashboard`: panel sayfaları
+- `src/lib/widget`: gömülebilir widget
+- `supabase/migrations/00000_init.sql`: şema ve RLS
+- `supabase/migrations/00000_init.sql`: `abuse_limits` ve admin RPC'leri
 
-1. \`widcom.html?id=blog-post-1\` sayfasını aç
-2. Yorum gönder
-3. “Yorumunuz onay bekliyor” mesajını gör
-4. Supabase tablosunda kaydın \`is_approved = false\` geldiğini doğrula
+## Güvenlik Notları
 
-### Admin testi
+- Supabase anahtarlarını client tarafında yalnızca anon key olarak kullanın.
+- Production'da HTTPS kullanın.
+- Gerekirse widget ve panel için ayrı domain/subdomain ayırın.
+- Supabase tarafında e-posta onayı, güçlü şifre politikası ve MFA açın.
+- Admin rolünü yalnızca güvendiğiniz hesaplara verin.
 
-1. \`admin.html\` sayfasını aç
-2. admin hesabıyla giriş yap
-3. bekleyen yorumu onayla
-4. yorumun widget'ta görünmesini doğrula
+## Lisans
 
-### Reply testi
-
-1. onaylanmış yorumda “Yanıt ver”e tıkla
-2. cevap yaz
-3. cevabın ağaç içinde göründüğünü kontrol et
-
-### RLS testi
-
-1. çıkış yap
-2. anonim kullanıcıyla sadece onaylı yorumların görüldüğünü kontrol et
-3. anonim olarak update/delete yapılamadığını doğrula
-
-## Tasarım Notları
-
-Widget ve admin arayüzü şu hedefle tasarlandı:
-
-- minimal ama cansız olmayan bir görünüm
-- sıkışık olmayan spacing
-- mobilde de rahat okunabilen kart düzeni
-- form alanlarında net odak görünümü
-- sekmeler ve etiketlerle hızlı taranabilirlik
-
-Bu tasarım kasıtlı olarak:
-
-- ağır pazarlama hero'ları kullanmaz
-- gereksiz süslemelere yaslanmaz
-- yorum sistemi gibi operasyonel bir araç için temiz ve düzenli kalır
-
-## PocketBase Desteği
-
-\`src/services/pocketbase-service.ts\` aynı servis arayüzünü uygular. Şu anda başlangıç iskeletidir.
-
-PocketBase'e geçerken doldurman gereken yerler:
-
-- collection tanımları
-- auth akışı
-- yorum listeleme
-- yorum oluşturma
-- admin onay / silme / reply
-
-Bu yüzden frontend tarafı tekrar yazılmak zorunda kalmaz.
-
-## İyileştirme Fikirleri
-
-Bir sonraki adımda eklenebilecekler:
-
-- yorum formuna anti-spam alanı
-- reply için modal pencere
-- admin panelinde tarih ve sayfa filtresi
-- pagination / infinite scroll
-- e-posta doğrulama akışı
-- markdown desteği
-- webhook veya e-posta bildirimleri
-
-## Sorun Giderme
-
-### Yorumlar görünmüyor
-
-- \`VITE_SUPABASE_URL\` doğru mu?
-- \`VITE_SUPABASE_ANON_KEY\` doğru mu?
-- \`db/supabase.sql\` çalıştı mı?
-- RLS policy’leri aktif mi?
-
-### Admin giriş olmuyor
-
-- Supabase Authentication’da kullanıcı oluşturuldu mu?
-- e-posta ve parola doğru mu?
-- session tarayıcıda saklanıyor mu?
-
-### Widget bozuk görünüyor
-
-- iframe genişliği yeterli mi?
-- yayınlanan dosyada \`dist/\` içeriği var mı?
-- CSS dosyası doğru yükleniyor mu?
-
-## Kısa Özet
-
-Wombat:
-
-- statik siteler için gömülebilir yorum sistemi
-- Supabase öncelikli, PocketBase uyarlanabilir
-- self-host edilebilir
-- güvenlik katmanı RLS ile kurulu
-- modern ve sade bir arayüz sunar
+Bu proje için henüz açık bir lisans tanımlı değil. İsterseniz uygun bir OSS lisansı ekleyebiliriz.

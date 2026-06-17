@@ -61,35 +61,35 @@
 </script>
 
 {#if loading}
-  <div class="text-gray-500 dark:text-gray-400">{i18n.t('loading_comments')}</div>
+  <div class="text-zinc-300">{i18n.t('loading_comments')}</div>
 {:else if comments.length === 0}
-  <div class="text-center py-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl">
-    <p class="text-gray-500 dark:text-gray-400">{i18n.t('no_comments')}</p>
+  <div class="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-2xl">
+    <p class="text-zinc-300">{i18n.t('no_comments')}</p>
   </div>
 {:else}
   <div class="flex flex-col gap-4">
     {#each comments as comment}
-      <div class="bg-white dark:bg-gray-900 border {comment.status === 'pending' ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20' : 'border-gray-200 dark:border-gray-800'} p-5 rounded-xl shadow-sm">
+      <div class="bg-zinc-900 border {comment.status === 'pending' ? 'border-zinc-700 bg-zinc-950/60' : 'border-zinc-800'} p-5 rounded-2xl shadow-sm">
         <div class="flex justify-between items-start mb-3">
           <div>
-            <span class="font-bold text-gray-900 dark:text-white">{comment.author_name}</span>
-            <span class="text-sm text-gray-500 dark:text-gray-400 mx-2">•</span>
-            <a href={comment.thread?.page_url} target="_blank" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+            <span class="font-bold text-zinc-50">{comment.author_name}</span>
+            <span class="text-sm text-zinc-500 mx-2">•</span>
+            <a href={comment.thread?.page_url} target="_blank" rel="noreferrer noopener" class="text-sm text-zinc-300 hover:underline">
               {comment.thread?.page_title || 'Unknown Page'}
             </a>
           </div>
           <div class="flex gap-2">
             {#if comment.status === 'pending'}
-              <button on:click={() => updateStatus(comment.id, 'approved')} class="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors">{i18n.t('approve')}</button>
+              <button on:click={() => updateStatus(comment.id, 'approved')} class="text-xs bg-white text-zinc-950 px-2 py-1 rounded-full hover:bg-zinc-200 transition-colors">{i18n.t('approve')}</button>
             {/if}
             {#if comment.status === 'approved'}
-              <button on:click={() => updateStatus(comment.id, 'pending')} class="text-xs bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">{i18n.t('unapprove')}</button>
+              <button on:click={() => updateStatus(comment.id, 'pending')} class="text-xs bg-zinc-800 text-zinc-100 px-2 py-1 rounded-full hover:bg-zinc-700 transition-colors">{i18n.t('unapprove')}</button>
             {/if}
-            <button on:click={() => deleteComment(comment.id)} class="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-1 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">{i18n.t('delete')}</button>
+            <button on:click={() => deleteComment(comment.id)} class="text-xs bg-zinc-950 border border-zinc-700 text-zinc-50 px-2 py-1 rounded-full hover:bg-zinc-800 transition-colors">{i18n.t('delete')}</button>
           </div>
         </div>
         
-        <div class="text-sm bg-white dark:bg-gray-800 p-3 rounded border border-gray-100 dark:border-gray-700 prose prose-sm max-w-none dark:prose-invert">
+        <div class="text-sm bg-zinc-950 p-3 rounded-2xl border border-zinc-800 prose prose-sm max-w-none">
           {@html parseMarkdown(comment.content)}
         </div>
       </div>

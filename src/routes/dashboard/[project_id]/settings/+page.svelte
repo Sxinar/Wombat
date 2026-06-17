@@ -22,22 +22,22 @@
   `.trim());
 </script>
 
-<div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-xl shadow-sm mb-6">
-  <h2 class="text-lg font-bold mb-4 text-gray-900 dark:text-white">{i18n.t('integration')}</h2>
-  <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+<div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-sm mb-6">
+  <h2 class="text-lg font-bold mb-4 text-zinc-50">{i18n.t('integration')}</h2>
+  <p class="text-sm text-zinc-300 mb-4">
     {i18n.t('integration_desc')}
   </p>
   
-  <div class="relative bg-gray-900 dark:bg-black rounded-lg p-4 font-mono text-sm text-green-400 overflow-x-auto">
+  <div class="relative bg-zinc-950 rounded-2xl p-4 font-mono text-sm text-zinc-100 overflow-x-auto border border-zinc-800">
     <pre>{scriptTag}</pre>
-    <button class="absolute top-2 right-2 bg-gray-700 text-white px-2 py-1 text-xs rounded hover:bg-gray-600 transition-colors"
+    <button class="absolute top-2 right-2 bg-white text-zinc-950 px-2 py-1 text-xs rounded-full hover:bg-zinc-200 transition-colors"
             on:click={() => navigator.clipboard.writeText(scriptTag)}>
       {i18n.t('copy')}
     </button>
   </div>
 </div>
 
-<div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-xl shadow-sm">
-  <h2 class="text-lg font-bold mb-4 text-gray-900 dark:text-white">{i18n.t('webhooks')}</h2>
-  <p class="text-sm text-gray-500 dark:text-gray-400 italic">{i18n.t('webhooks_desc')}</p>
+<div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-sm">
+  <h2 class="text-lg font-bold mb-4 text-zinc-50">{i18n.t('webhooks')}</h2>
+  <p class="text-sm text-zinc-300 italic">{i18n.t('webhooks_desc')}</p>
 </div>

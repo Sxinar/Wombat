@@ -8,6 +8,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
+const COMMENT_LIMIT_WINDOW_SECONDS = 900;
+const COMMENT_LIMIT_MAX = 5;
+const REACTION_LIMIT_WINDOW_SECONDS = 900;
+const REACTION_LIMIT_MAX = 20;
+
 export async function OPTIONS() {
   return new Response(null, { headers: corsHeaders });
 }
@@ -45,7 +50,51 @@ export async function GET({ url }: RequestEvent) {
     return json({ error: commentsError.message }, { status: 500, headers: corsHeaders });
   }
 
-  return json({ comments }, { headers: corsHeaders });
+  const commentIds = (comments || []).map((comment) => comment.id);
+  const reactions = commentIds.length > 0
+    ? (await supabase
+        .from('comment_reactions')
+        .select('comment_id, emoji')
+        .in('comment_id', commentIds)).data
+    : [];
+
+  const reactionMap = new Map<string, Record<string, number>>();
+  for (const reaction of reactions || []) {
+    const current = reactionMap.get(reaction.comment_id) || {};
+    current[reaction.emoji] = (current[reaction.emoji] || 0) + 1;
+    reactionMap.set(reaction.comment_id, current);
+  }
+
+  const commentsWithReactions = (comments || []).map((comment) => ({
+    ...comment,
+    reactions: reactionMap.get(comment.id) || {}
+  }));
+
+  return json({ comments: commentsWithReactions }, { headers: corsHeaders });
+}
+
+function normalizeText(value: unknown, maxLength: number) {
+  if (typeof value !== 'string') return '';
+  return value.trim().replace(/[\u0000-\u001f\u007f]/g, '').slice(0, maxLength);
+}
+
+function isValidEmail(value: string) {
+  if (!value) return true;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function getOrigin(value: string) {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function getClientIp(request: Request) {
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  const firstForwarded = forwardedFor?.split(',')[0]?.trim();
+  return firstForwarded || request.headers.get('x-real-ip') || 'unknown';
 }
 
 export async function POST({ request }: RequestEvent) {
@@ -53,8 +102,42 @@ export async function POST({ request }: RequestEvent) {
     const body = await request.json();
     const { appId, pageId, pageTitle, pageUrl, content, authorName, authorEmail, parentId } = body;
 
-    if (!appId || !pageId || !content || !authorName) {
+    const normalizedAppId = normalizeText(appId, 100);
+    const normalizedPageId = normalizeText(pageId, 200);
+    const normalizedPageTitle = normalizeText(pageTitle, 300);
+    const normalizedPageUrl = normalizeText(pageUrl, 2048);
+    const normalizedContent = normalizeText(content, 10000);
+    const normalizedAuthorName = normalizeText(authorName, 120);
+    const normalizedAuthorEmail = normalizeText(authorEmail, 254);
+    const normalizedParentId = normalizeText(parentId, 100);
+    const requestOrigin = request.headers.get('origin');
+    const pageOrigin = normalizedPageUrl ? getOrigin(normalizedPageUrl) : null;
+
+    if (!normalizedAppId || !normalizedPageId || !normalizedContent || !normalizedAuthorName) {
       return json({ error: 'Missing required fields' }, { status: 400, headers: corsHeaders });
+    }
+
+    if (normalizedContent.length < 1 || normalizedAuthorName.length < 2) {
+      return json({ error: 'Invalid input' }, { status: 400, headers: corsHeaders });
+    }
+
+    if (normalizedAuthorEmail && !isValidEmail(normalizedAuthorEmail)) {
+      return json({ error: 'Invalid email address' }, { status: 400, headers: corsHeaders });
+    }
+
+    if (requestOrigin && pageOrigin && requestOrigin !== pageOrigin) {
+      return json({ error: 'Origin mismatch' }, { status: 403, headers: corsHeaders });
+    }
+
+    const rateKey = `comment:${getClientIp(request)}`;
+    const { data: allowed } = await supabase.rpc('check_abuse_limit', {
+      p_scope: rateKey,
+      p_max_count: COMMENT_LIMIT_MAX,
+      p_window_seconds: COMMENT_LIMIT_WINDOW_SECONDS
+    });
+
+    if (allowed !== true) {
+      return json({ error: 'Too many requests' }, { status: 429, headers: corsHeaders });
     }
 
     // 1. Ensure thread exists (UPSERT essentially)
@@ -64,8 +147,8 @@ export async function POST({ request }: RequestEvent) {
     let { data: thread } = await supabase
       .from('threads')
       .select('id')
-      .eq('project_id', appId)
-      .eq('page_id', pageId)
+      .eq('project_id', normalizedAppId)
+      .eq('page_id', normalizedPageId)
       .single();
 
     if (thread) {
@@ -74,10 +157,10 @@ export async function POST({ request }: RequestEvent) {
       const { data: newThread, error: insertThreadError } = await supabase
         .from('threads')
         .insert({
-          project_id: appId,
-          page_id: pageId,
-          page_title: pageTitle,
-          page_url: pageUrl
+          project_id: normalizedAppId,
+          page_id: normalizedPageId,
+          page_title: normalizedPageTitle,
+          page_url: normalizedPageUrl
         })
         .select('id')
         .single();
@@ -95,10 +178,10 @@ export async function POST({ request }: RequestEvent) {
       .from('comments')
       .insert({
         thread_id: threadId,
-        parent_id: parentId || null,
-        content,
-        author_name: authorName,
-        author_email: authorEmail,
+        parent_id: normalizedParentId || null,
+        content: normalizedContent,
+        author_name: normalizedAuthorName,
+        author_email: normalizedAuthorEmail || null,
         status,
         is_admin: false
       })
@@ -110,6 +193,79 @@ export async function POST({ request }: RequestEvent) {
     // TODO: Trigger webhooks or email notifications here
 
     return json({ success: true, status, comment }, { headers: corsHeaders });
+  } catch (err: any) {
+    return json({ error: err.message }, { status: 500, headers: corsHeaders });
+  }
+}
+
+export async function PATCH({ request }: RequestEvent) {
+  try {
+    const body = await request.json();
+    const commentId = normalizeText(body?.commentId, 100);
+    const emoji = normalizeText(body?.emoji, 8);
+    const action = normalizeText(body?.action, 16);
+    const reactorKey = normalizeText(body?.reactorKey, 128);
+
+    const allowedEmojis = ['👍', '❤️', '😂', '🎉'];
+    if (!commentId || !reactorKey || !allowedEmojis.includes(emoji)) {
+      return json({ error: 'Invalid reaction payload' }, { status: 400, headers: corsHeaders });
+    }
+
+    const { data: comment } = await supabase
+      .from('comments')
+      .select('id, thread_id, status')
+      .eq('id', commentId)
+      .single();
+
+    if (!comment || comment.status !== 'approved') {
+      return json({ error: 'Comment not found' }, { status: 404, headers: corsHeaders });
+    }
+
+    const rateKey = `reaction:${getClientIp(request)}`;
+    const { data: allowed } = await supabase.rpc('check_abuse_limit', {
+      p_scope: rateKey,
+      p_max_count: REACTION_LIMIT_MAX,
+      p_window_seconds: REACTION_LIMIT_WINDOW_SECONDS
+    });
+
+    if (allowed !== true) {
+      return json({ error: 'Too many requests' }, { status: 429, headers: corsHeaders });
+    }
+
+    const { data: existingReaction } = await supabase
+      .from('comment_reactions')
+      .select('id')
+      .eq('comment_id', commentId)
+      .eq('emoji', emoji)
+      .eq('reactor_key', reactorKey)
+      .maybeSingle();
+
+    if (action === 'remove' || (action === 'toggle' && existingReaction)) {
+      const { error } = await supabase
+        .from('comment_reactions')
+        .delete()
+        .eq('comment_id', commentId)
+        .eq('emoji', emoji)
+        .eq('reactor_key', reactorKey);
+
+      if (error) throw error;
+      return json({ success: true }, { headers: corsHeaders });
+    }
+
+    if (action === 'toggle' && existingReaction) {
+      return json({ success: true, removed: true }, { headers: corsHeaders });
+    }
+
+    const { error } = await supabase
+      .from('comment_reactions')
+      .insert({
+        comment_id: commentId,
+        emoji,
+        reactor_key: reactorKey
+      });
+
+    if (error) throw error;
+    return json({ success: true, added: true }, { headers: corsHeaders });
   } catch (err: any) {
     return json({ error: err.message }, { status: 500, headers: corsHeaders });
   }

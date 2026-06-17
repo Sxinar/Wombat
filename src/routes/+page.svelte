@@ -2,15 +2,16 @@
   import { i18n } from '$lib/i18n.svelte';
 </script>
 
-<div class="text-center mt-20">
-  <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-gray-900 dark:text-white">
+<div class="text-center mt-24 md:mt-28">
+  <div class="mx-auto mb-6 h-px w-24 bg-zinc-200/40"></div>
+  <h1 class="text-4xl md:text-6xl font-black tracking-tight mb-4 text-zinc-50">
     {i18n.t('landing_title')}
   </h1>
-  <p class="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+  <p class="text-lg text-zinc-400 mb-10 max-w-2xl mx-auto">
     {i18n.t('landing_desc')}
   </p>
   <div class="flex justify-center gap-4">
-    <a href="/auth" class="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">{i18n.t('get_started')}</a>
-    <a href="https://github.com/Sxinar/Wombat" class="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">{i18n.t('view_source')}</a>
+    <a href="/auth" class="bg-white text-zinc-950 px-6 py-3 rounded-full font-medium hover:bg-zinc-200 transition-colors">{i18n.t('get_started')}</a>
+    <a href="https://github.com/Sxinar/Wombat" class="bg-zinc-900 text-zinc-50 border border-zinc-700 px-6 py-3 rounded-full font-medium hover:bg-zinc-800 transition-colors">{i18n.t('view_source')}</a>
   </div>
 </div>
