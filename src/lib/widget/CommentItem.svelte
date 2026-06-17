@@ -1,9 +1,16 @@
 <script lang="ts">
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
+  import CommentItem from './CommentItem.svelte';
 
-  export let comment: any;
-  export let onReply: (id: string) => void;
+  // Svelte 5: $props() kullanımı
+  let {
+    comment,
+    onReply
+  } = $props<{
+    comment: any;
+    onReply: (id: string) => void;
+  }>();
 
   function parseMarkdown(content: string) {
     const rawHtml = marked.parse(content) as string;
@@ -26,19 +33,19 @@
     {/if}
     <span class="date">{formatDate(comment.created_at)}</span>
   </div>
-  
+
   <div class="content">
     {@html parseMarkdown(comment.content)}
   </div>
 
   <div class="actions">
-    <button class="reply-btn" on:click={() => onReply(comment.id)}>Reply</button>
+    <button class="reply-btn" onclick={() => onReply(comment.id)}>Reply</button>
   </div>
 
   {#if comment.children && comment.children.length > 0}
     <div class="replies">
       {#each comment.children as child}
-        <svelte:self comment={child} {onReply} />
+        <CommentItem comment={child} {onReply} />
       {/each}
     </div>
   {/if}

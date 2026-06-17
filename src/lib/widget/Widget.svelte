@@ -6,11 +6,20 @@
   import DOMPurify from 'dompurify';
   import CommentItem from './CommentItem.svelte';
 
-  export let appid: string = '';
-  export let pageid: string = '';
-  export let pagetitle: string = '';
-  export let pageurl: string = '';
-  export let host: string = ''; // The URL where the SvelteKit API is hosted
+  // Svelte 5: $props() yerine export let kullanılamaz
+  let {
+    appid = '',
+    pageid = '',
+    pagetitle = '',
+    pageurl = '',
+    host: hostProp = ''
+  } = $props<{
+    appid?: string;
+    pageid?: string;
+    pagetitle?: string;
+    pageurl?: string;
+    host?: string;
+  }>();
 
   type Comment = {
     id: string;
@@ -22,6 +31,7 @@
     children?: Comment[];
   };
 
+  let host = $state('');
   let comments = $state<Comment[]>([]);
   let loading = $state(true);
   let error = $state('');
@@ -35,9 +45,8 @@
   let replyToId = $state<string | null>(null);
 
   onMount(async () => {
-    if (!host) {
-      host = window.location.origin;
-    }
+    // hostProp'u al; yoksa sayfanın kendi origin'ini kullan
+    host = hostProp || window.location.origin;
     await fetchComments();
   });
 
@@ -47,7 +56,7 @@
       const url = new URL(`${host}/api/comments`);
       url.searchParams.set('appId', appid);
       url.searchParams.set('pageId', pageid);
-      
+
       const res = await fetch(url.toString());
       if (!res.ok) throw new Error('Failed to load comments');
       const data = await res.json();
@@ -79,11 +88,6 @@
     });
 
     return roots;
-  }
-
-  function parseMarkdown(content: string) {
-    const rawHtml = marked.parse(content) as string;
-    return DOMPurify.sanitize(rawHtml);
   }
 
   async function submitComment(e: Event) {
@@ -150,7 +154,7 @@
       {#each comments as comment}
         <CommentItem
           {comment}
-          onReply={(id) => { replyToId = id; }}
+          onReply={(id: string) => { replyToId = id; }}
         />
       {/each}
     {/if}
@@ -160,7 +164,7 @@
     {#if replyToId}
       <div class="replying-notice">
         Replying to a comment
-        <button on:click={() => replyToId = null}>Cancel</button>
+        <button onclick={() => replyToId = null}>Cancel</button>
       </div>
     {/if}
 
@@ -168,7 +172,7 @@
       <div class="success">{successMessage}</div>
     {/if}
 
-    <form on:submit={submitComment}>
+    <form onsubmit={submitComment}>
       <div class="input-row">
         <input type="text" placeholder="Name" bind:value={newCommentAuthor} required />
         <input type="email" placeholder="Email (optional)" bind:value={newCommentEmail} />
@@ -260,7 +264,6 @@
     padding: 2rem 0;
   }
 
-  /* Responsive dark mode */
   @media (prefers-color-scheme: dark) {
     :host { color: #d1d5db; }
     .form-wrapper { border-color: #374151; }
