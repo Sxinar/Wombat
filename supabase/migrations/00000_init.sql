@@ -22,9 +22,6 @@ begin
 end;
 $$;
 
-grant execute on function public.check_abuse_limit(text, integer, integer) to anon, authenticated;
-grant execute on function public.set_admin_status(text, boolean) to authenticated;
-
 -- Trigger to automatically create profile on signup
 create trigger on_auth_user_created
   after insert on auth.users
@@ -151,6 +148,9 @@ begin
   where lower(email) = lower(target_email);
 end;
 $$;
+
+grant execute on function public.check_abuse_limit(text, integer, integer) to anon, authenticated;
+grant execute on function public.set_admin_status(text, boolean) to authenticated;
 
 -- Index for querying comments efficiently
 create index comments_thread_id_idx on public.comments(thread_id);

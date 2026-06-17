@@ -51,15 +51,32 @@
     await fetchComments();
   });
 
+  function hasValidConfig() {
+    return !!appid.trim() && !!pageid.trim();
+  }
+
   async function fetchComments() {
     try {
       loading = true;
+      error = '';
+
+      if (!hasValidConfig()) {
+        comments = [];
+        error = 'Wombat widget is missing appId or pageId.';
+        return;
+      }
+
       const url = new URL(`${host}/api/comments`);
       url.searchParams.set('appId', appid);
       url.searchParams.set('pageId', pageid);
 
       const res = await fetch(url.toString());
-      if (!res.ok) throw new Error('Failed to load comments');
+      if (!res.ok) {
+        if (res.status === 400) {
+          throw new Error('Wombat widget is misconfigured. Please provide appId and pageId.');
+        }
+        throw new Error('Failed to load comments');
+      }
       const data = await res.json();
       comments = buildCommentTree(data.comments || []);
     } catch (err: any) {
@@ -94,9 +111,14 @@
   async function submitComment(e: Event) {
     e.preventDefault();
     if (!newCommentContent.trim() || !newCommentAuthor.trim()) return;
+    if (!hasValidConfig()) {
+      error = 'Wombat widget is missing appId or pageId.';
+      return;
+    }
 
     try {
       submitting = true;
+      error = '';
       const url = `${host}/api/comments`;
       const res = await fetch(url, {
         method: 'POST',
@@ -113,7 +135,10 @@
         })
       });
 
-      if (!res.ok) throw new Error('Submission failed');
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.error || 'Submission failed');
+      }
       const data = await res.json();
 
       newCommentContent = '';
@@ -144,7 +169,12 @@
   }
 
   async function reactToComment(commentId: string, emoji: string) {
+    if (!hasValidConfig()) {
+      error = 'Wombat widget is missing appId or pageId.';
+      return;
+    }
     try {
+      error = '';
       const res = await fetch(`${host}/api/comments`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -155,7 +185,10 @@
           action: 'toggle'
         })
       });
-      if (!res.ok) throw new Error('Reaction failed');
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.error || 'Reaction failed');
+      }
       await fetchComments();
     } catch (err: any) {
       error = err.message;
@@ -178,7 +211,7 @@
   <div class="comments-list">
     {#if loading}
       <div class="loading">Loading comments...</div>
-    {:else if comments.length === 0}
+    {:else if comments.length === 0 && !error}
       <div class="empty">No comments yet. Be the first!</div>
     {:else}
       {#each comments as comment}

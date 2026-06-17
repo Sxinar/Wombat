@@ -14,6 +14,10 @@ if (target) {
   const pageurl   = d.pageurl   || d.pageUrl   || '';
   const host      = d.host      || '';
 
+  if (!appid || !pageid) {
+    console.warn('Wombat widget: missing data-app-id or data-page-id on #wombat_thread');
+  }
+
   const widget = document.createElement('wombat-widget');
   widget.setAttribute('host',      host);
   widget.setAttribute('appid',     appid);
