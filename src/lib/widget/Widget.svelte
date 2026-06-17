@@ -137,7 +137,7 @@
 
       if (!res.ok) {
         const payload = await res.json().catch(() => null);
-        throw new Error(payload?.error || 'Submission failed');
+        throw new Error(payload?.error || `Submission failed (${res.status})`);
       }
       const data = await res.json();
 
@@ -187,7 +187,7 @@
       });
       if (!res.ok) {
         const payload = await res.json().catch(() => null);
-        throw new Error(payload?.error || 'Reaction failed');
+        throw new Error(payload?.error || `Reaction failed (${res.status})`);
       }
       await fetchComments();
     } catch (err: any) {

@@ -97,9 +97,22 @@ function getClientIp(request: Request) {
   return firstForwarded || request.headers.get('x-real-ip') || 'unknown';
 }
 
+async function readJsonBody(request: Request) {
+  const raw = await request.text();
+  if (!raw.trim()) {
+    throw new Error('Empty request body');
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error('Invalid JSON payload');
+  }
+}
+
 export async function POST({ request }: RequestEvent) {
   try {
-    const body = await request.json();
+    const body = await readJsonBody(request);
     const { appId, pageId, pageTitle, pageUrl, content, authorName, authorEmail, parentId } = body;
 
     const normalizedAppId = normalizeText(appId, 100);
@@ -194,13 +207,14 @@ export async function POST({ request }: RequestEvent) {
 
     return json({ success: true, status, comment }, { headers: corsHeaders });
   } catch (err: any) {
-    return json({ error: err.message }, { status: 500, headers: corsHeaders });
+    const status = err.message === 'Invalid JSON payload' || err.message === 'Empty request body' ? 400 : 500;
+    return json({ error: err.message }, { status, headers: corsHeaders });
   }
 }
 
 export async function PATCH({ request }: RequestEvent) {
   try {
-    const body = await request.json();
+    const body = await readJsonBody(request);
     const commentId = normalizeText(body?.commentId, 100);
     const emoji = normalizeText(body?.emoji, 8);
     const action = normalizeText(body?.action, 16);
@@ -267,6 +281,7 @@ export async function PATCH({ request }: RequestEvent) {
     if (error) throw error;
     return json({ success: true, added: true }, { headers: corsHeaders });
   } catch (err: any) {
-    return json({ error: err.message }, { status: 500, headers: corsHeaders });
+    const status = err.message === 'Invalid JSON payload' || err.message === 'Empty request body' ? 400 : 500;
+    return json({ error: err.message }, { status, headers: corsHeaders });
   }
 }
