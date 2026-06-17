@@ -3,15 +3,22 @@ import './Widget.svelte';
 // Auto-bootstrap if the user uses the Wombat div snippet
 const target = document.getElementById('wombat_thread');
 if (target) {
-  const widget = document.createElement('wombat-widget');
+  const d = target.dataset;
 
-  // dataset.appid  ← "data-appid"
-  // dataset.appId  ← "data-app-id"   (farklı!)
-  // Snippet'te "data-appid" kullanıldığından aşağıdaki isimleri kullan:
-  widget.setAttribute('host',      target.dataset.host      || '');
-  widget.setAttribute('appid',     target.dataset.appid     || '');
-  widget.setAttribute('pageid',    target.dataset.pageid    || '');
-  widget.setAttribute('pagetitle', target.dataset.pagetitle || '');
-  widget.setAttribute('pageurl',   target.dataset.pageurl   || '');
+  // Her iki format desteklenir:
+  //   data-appid   → dataset.appid
+  //   data-app-id  → dataset.appId  (admin panel bu formatı üretir)
+  const appid     = d.appid     || d.appId     || '';
+  const pageid    = d.pageid    || d.pageId    || '';
+  const pagetitle = d.pagetitle || d.pageTitle || '';
+  const pageurl   = d.pageurl   || d.pageUrl   || '';
+  const host      = d.host      || '';
+
+  const widget = document.createElement('wombat-widget');
+  widget.setAttribute('host',      host);
+  widget.setAttribute('appid',     appid);
+  widget.setAttribute('pageid',    pageid);
+  widget.setAttribute('pagetitle', pagetitle);
+  widget.setAttribute('pageurl',   pageurl);
   target.replaceWith(widget);
 }
