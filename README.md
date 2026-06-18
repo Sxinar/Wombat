@@ -1,6 +1,6 @@
 # Wombat
 
-Wombat, Supabase ve SvelteKit ile yazılmış hafif bir yorum platformudur. Tek bir widget script'i ile herhangi bir siteye gömülebilir; panelden yorumlar yönetilir, admin kullanıcılar ise ek analiz kartlarını ve admin yönetimini görür.
+Wombat, SvelteKit ve MongoDB ile yazılmış hafif bir yorum platformudur. Tek bir widget script'i ile herhangi bir siteye gömülebilir; panelden yorumlar yönetilir ve kullanıcılar kendi sitelerini görebilir.
 
 ## Özellikler
 
@@ -11,13 +11,13 @@ Wombat, Supabase ve SvelteKit ile yazılmış hafif bir yorum platformudur. Tek 
 - Admin panelinde proje bazlı yorum yönetimi
 - Admin kullanıcılar için dashboard istatistikleri
 - Admin rol yönetimi
-- Supabase RLS tabanlı erişim kontrolü
+- Cookie tabanlı güvenli oturum açma
 - Yorum ve reaksiyonlar için oran sınırlama
 
 ## Teknoloji
 
 - SvelteKit
-- Supabase
+- MongoDB
 - TypeScript
 - Marked
 - DOMPurify
@@ -33,32 +33,20 @@ Wombat, Supabase ve SvelteKit ile yazılmış hafif bir yorum platformudur. Tek 
    ```bash
    npm install
    ```
-3. Supabase projesi oluşturun.
-4. `supabase/migrations/00000_init.sql` içindeki SQL'i çalıştırın.
-5. `.env` dosyasını oluşturun.
+3. MongoDB çalıştırın.
+4. `.env` dosyasını oluşturun.
 
 ## Ortam Değişkenleri
 
 ```dotenv
-VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+MONGODB_URI=mongodb://127.0.0.1:27017
+MONGODB_DB_NAME=wombat
+JWT_SECRET=super-long-random-secret
 ```
 
-İsteğe bağlı olarak widget host'unu da ayrı bir ortam değişkeniyle kullanabilirsiniz. Uygulama içinde widget, mevcut origin'i de kullanabilir.
+## İlk Admin
 
-## Admin Oluşturma
-
-Mevcut bir admin, dashboard ana sayfasındaki `Admin yönetimi` alanından başka bir kullanıcıya admin yetkisi verebilir.
-
-İlk admin'i başlatmak için Supabase SQL Editor'da bir kez şu komutu çalıştırın:
-
-```sql
-update public.profiles
-set is_admin = true
-where email = 'admin@example.com';
-```
-
-Sonrasında admin yetkileri panel üzerinden güvenli RPC ile yönetilir.
+İlk kullanıcı hesabını `/auth` ekranından oluşturun, sonra MongoDB'de `users` koleksiyonundaki ilgili kayda `is_admin: true` verin.
 
 ## Geliştirme
 
@@ -88,18 +76,18 @@ npm run build:widget
 
 ### Ana akış
 
-- Kullanıcı `/auth` ekranından giriş yapar veya kayıt olur.
+- Kullanıcı `/auth` ekranından giriş yapar veya hesap oluşturur.
 - `/dashboard` altında projelerini görür.
 - Bir proje içinde yorumları onaylar, siler ve yanıtlar.
 - Widget, `/api/comments` üzerinden yorumları çeker ve yeni yorumları aynı endpoint'e gönderir.
-- Reaksiyonlar aynı API üzerinden güvenli biçimde yönetilir.
+- Reaksiyonlar aynı API üzerinden yönetilir.
 
 ### Dashboard erişimi
 
 - Kullanıcı giriş yapmadıysa `/auth`'a yönlendirilir.
 - Proje sayfaları, kullanıcının sahip olmadığı `project_id` için açılmaz.
-- `profiles.is_admin = true` olan kullanıcılar dashboard ana sayfasında ek analiz kartları görür.
-- `profiles.is_admin = true` olan kullanıcılar admin yönetim kartını görür.
+- `is_admin = true` olan kullanıcılar dashboard ana sayfasında ek analiz kartları görür.
+- `is_admin = true` olan kullanıcılar admin yönetim kartını görür.
 
 ## Widget Kullanımı
 
@@ -116,17 +104,11 @@ Dashboard içindeki `Settings` sekmesinde üretilen örnek snippet şuna benzer:
 <script async defer src="https://your-domain.com/widget.js"></script>
 ```
 
-Notlar:
-
-- `data-app-id` proje kimliğidir.
-- `data-page-id` her sayfa için benzersiz olmalıdır.
-- `data-page-url` ve `data-page-title` mümkünse gerçek sayfa verileriyle doldurulmalıdır.
-
 ## Veri Modeli
 
-Ana tablolar:
+Ana koleksiyonlar:
 
-- `profiles`
+- `users`
 - `projects`
 - `threads`
 - `comments`
@@ -143,7 +125,6 @@ Ana tablolar:
 
 - Her yorum için emoji reaksiyonlarını tutar
 - Aynı kullanıcı/cihaz için aynı emoji tekrar eklenirse toggle mantığıyla kaldırılabilir
-- Reaksiyonlar IP bazlı oran sınırlamasına tabidir.
 
 ## Güvenlik
 
@@ -153,29 +134,14 @@ Ana tablolar:
 - Dashboard tarafında proje sahipliği kontrol edilir.
 - Dış bağlantılarda `rel="noreferrer noopener"` kullanılır.
 - Yorum ve reaksiyon endpoint'lerinde IP bazlı oran sınırlama uygulanır.
-- Admin rol değişiklikleri `SECURITY DEFINER` RPC ile yapılır ve yalnızca mevcut adminlerce çalıştırılabilir.
+- Admin rol değişiklikleri yalnızca mevcut adminlerce yapılabilir.
 
-## Admin Analitikleri
+## Proje Yapısı
 
-Admin kullanıcılar dashboard ana sayfasında şu özetleri görür:
-
-- Toplam proje sayısı
-- Toplam yorum sayısı
-- Bekleyen yorum sayısı
-- Onaylı yorum sayısı
-- Son 7 gündeki yorum sayısı
-- Toplam reaksiyon sayısı
-
-## Reaksiyonlar
-
-Widget'ta varsayılan emoji seti:
-
-- `👍`
-- `❤️`
-- `😂`
-- `🎉`
-
-Reaksiyonlar public olarak okunur ve aynı kullanıcı için toggle mantığıyla değiştirilebilir.
+- `src/routes/api/comments/+server.ts`: yorum ve reaksiyon API'si
+- `src/routes/dashboard`: panel sayfaları
+- `src/lib/widget`: gömülebilir widget
+- `src/lib/server`: MongoDB, auth ve rate-limit yardımcıları
 
 ## Sık Sorulanlar
 
@@ -183,33 +149,11 @@ Reaksiyonlar public olarak okunur ve aynı kullanıcı için toggle mantığıyl
 
 - `appId` ile `pageId` eşleşiyor mu kontrol edin.
 - Yorumun `approved` durumunda olduğundan emin olun.
-- Supabase RLS politikalarının uygulanmış olduğunu doğrulayın.
-
-### Widget neden iki kez görünüyor?
-
-- Aynı sayfada `widget.js` birden fazla yüklenmiş olabilir.
-- Sadece tek bir `wombat_thread` container kullanın.
+- Widget'ın aynı origin'den yorumları çektiğini doğrulayın.
 
 ### Admin kartları neden görünmüyor?
 
-- `profiles.is_admin` alanı `true` olmalı.
-- Kullanıcı gerçekten giriş yapmış olmalı.
-
-## Proje Yapısı
-
-- `src/routes/api/comments/+server.ts`: yorum ve reaksiyon API'si
-- `src/routes/dashboard`: panel sayfaları
-- `src/lib/widget`: gömülebilir widget
-- `supabase/migrations/00000_init.sql`: şema ve RLS
-- `supabase/migrations/00000_init.sql`: `abuse_limits` ve admin RPC'leri
-
-## Güvenlik Notları
-
-- Supabase anahtarlarını client tarafında yalnızca anon key olarak kullanın.
-- Production'da HTTPS kullanın.
-- Gerekirse widget ve panel için ayrı domain/subdomain ayırın.
-- Supabase tarafında e-posta onayı, güçlü şifre politikası ve MFA açın.
-- Admin rolünü yalnızca güvendiğiniz hesaplara verin.
+- Kullanıcının `is_admin` alanı `true` olmalı.
 
 ## Lisans
 

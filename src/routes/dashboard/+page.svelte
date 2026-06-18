@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { supabase } from '$lib/supabase';
   import { goto } from '$app/navigation';
   import { i18n } from '$lib/i18n.svelte';
 
@@ -23,91 +22,52 @@
   });
 
   onMount(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const meResponse = await fetch('/api/auth/me');
+    const me = await meResponse.json().catch(() => ({}));
+    if (!me.user) {
       goto('/auth');
       return;
     }
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', session.user.id)
-      .maybeSingle();
-    isAdmin = !!profile?.is_admin;
+    isAdmin = !!me.user.is_admin;
     await loadProjects();
   });
 
   async function loadProjects() {
-    const { data, error } = await supabase
-      .from('projects')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (!error && data) projects = data;
-    await loadStats(data || []);
+    const response = await fetch('/api/projects');
+    const data = await response.json();
+    if (response.ok && data.projects) projects = data.projects;
+    await loadStats(data.projects || []);
     loading = false;
   }
 
   async function loadStats(projectList: any[]) {
     stats.totalProjects = projectList.length;
-
-    const projectIds = projectList.map((project) => project.id);
-    if (projectIds.length === 0) return;
-
-    const { data: threads } = await supabase
-      .from('threads')
-      .select('id, project_id')
-      .in('project_id', projectIds);
-
-    const threadIds = (threads || []).map((thread) => thread.id);
-    stats.totalThreads = threadIds.length;
-
-    if (threadIds.length === 0) return;
-
-    const { data: comments } = await supabase
-      .from('comments')
-      .select('id, status, created_at, thread_id')
-      .in('thread_id', threadIds);
-
-    stats.totalComments = comments?.length || 0;
-    stats.pendingComments = comments?.filter((comment) => comment.status === 'pending').length || 0;
-    stats.approvedComments = comments?.filter((comment) => comment.status === 'approved').length || 0;
-    stats.recentComments = comments?.filter((comment) => {
-      const createdAt = new Date(comment.created_at).getTime();
-      return createdAt >= Date.now() - 7 * 24 * 60 * 60 * 1000;
-    }).length || 0;
-
-    const reactionCommentIds = comments?.map((comment) => comment.id) || [];
-    if (reactionCommentIds.length > 0) {
-      const { data: reactions } = await supabase
-        .from('comment_reactions')
-        .select('id')
-        .in('comment_id', reactionCommentIds);
-
-      stats.reactions = reactions?.length || 0;
+    const response = await fetch('/api/dashboard/stats');
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) {
+      stats = { ...stats, ...data };
     }
   }
 
   async function createProject() {
     if (!newProjectName.trim()) return;
     creating = true;
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { error } = await supabase
-        .from('projects')
-        .insert({ name: newProjectName, user_id: user.id });
-      
-      if (!error) {
-        newProjectName = '';
-        await loadProjects();
-      }
+
+    const response = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newProjectName })
+    });
+
+    if (response.ok) {
+      newProjectName = '';
+      await loadProjects();
     }
     creating = false;
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
+    await fetch('/api/auth/logout', { method: 'POST' });
     goto('/auth');
   }
 
@@ -116,13 +76,18 @@
     adminBusy = true;
     adminMessage = '';
 
-    const { error } = await supabase.rpc('set_admin_status', {
-      target_email: adminEmail.trim(),
-      make_admin: makeAdmin
+    const response = await fetch('/api/admin/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetEmail: adminEmail.trim(),
+        makeAdmin
+      })
     });
+    const data = await response.json().catch(() => ({}));
 
-    if (error) {
-      adminMessage = error.message;
+    if (!response.ok) {
+      adminMessage = data.error || 'İşlem başarısız.';
     } else {
       adminMessage = makeAdmin ? 'Admin yetkisi verildi.' : 'Admin yetkisi kaldırıldı.';
       adminEmail = '';

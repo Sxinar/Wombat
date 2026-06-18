@@ -3,7 +3,6 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { i18n } from '$lib/i18n.svelte';
-  import { supabase } from '$lib/supabase';
   let { children } = $props();
   
   let projectId = $derived($page.params.project_id);
@@ -11,20 +10,15 @@
   let checkingAccess = $state(true);
 
   onMount(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const meResponse = await fetch('/api/auth/me');
+    const me = await meResponse.json().catch(() => ({}));
+    if (!me.user) {
       goto('/auth');
       return;
     }
 
-    const { data, error } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('id', projectId)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (error || !data) {
+    const response = await fetch(`/api/projects/${projectId}`);
+    if (!response.ok) {
       goto('/dashboard');
       return;
     }

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
-  import { supabase } from '$lib/supabase';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
   import { i18n } from '$lib/i18n.svelte';
@@ -17,41 +16,36 @@
 
   async function loadComments() {
     loading = true;
-    
-    // First find all thread IDs for this project
-    const { data: threads } = await supabase
-      .from('threads')
-      .select('id, page_title, page_url')
-      .eq('project_id', projectId);
 
-    if (threads && threads.length > 0) {
-      const threadIds = threads.map(t => t.id);
-      
-      const { data } = await supabase
-        .from('comments')
-        .select('*')
-        .in('thread_id', threadIds)
-        .order('created_at', { ascending: false });
-        
-      if (data) {
-        comments = data.map(c => {
-          const thread = threads.find(t => t.id === c.thread_id);
-          return { ...c, thread };
-        });
-      }
+    const response = await fetch(`/api/projects/${projectId}/comments`);
+    const data = await response.json().catch(() => ({}));
+    const threads = data.threads || [];
+    if (response.ok) {
+      comments = (data.comments || []).map((comment: any) => {
+        const thread = threads.find((t: any) => t._id === comment.thread_id);
+        return { ...comment, thread };
+      });
     }
-    
+
     loading = false;
   }
 
   async function updateStatus(id: string, status: string) {
-    await supabase.from('comments').update({ status }).eq('id', id);
+    await fetch(`/api/projects/${projectId}/comments`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commentId: id, status })
+    });
     await loadComments();
   }
 
   async function deleteComment(id: string) {
     if (!confirm('Are you sure you want to delete this comment?')) return;
-    await supabase.from('comments').delete().eq('id', id);
+    await fetch(`/api/projects/${projectId}/comments`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commentId: id })
+    });
     await loadComments();
   }
 

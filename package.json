@@ -18,6 +18,7 @@
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@tailwindcss/vite": "^4.3.1",
 		"@types/dompurify": "^3.0.5",
+		"@types/node": "^24.0.13",
 		"svelte": "^5.56.1",
 		"svelte-check": "^4.6.0",
 		"tailwindcss": "^4.3.1",
@@ -25,7 +26,9 @@
 		"vite": "^8.0.16"
 	},
 	"dependencies": {
-		"@supabase/supabase-js": "^2.108.2",
+		"bcryptjs": "^3.0.2",
+		"mongodb": "^6.20.0",
+		"jose": "^6.0.10",
 		"dompurify": "^3.4.11",
 		"marked": "^18.0.5"
 	}

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { supabase } from '$lib/supabase';
   import { goto } from '$app/navigation';
   import { i18n } from '$lib/i18n.svelte';
 
@@ -11,38 +10,24 @@
   async function handleAuth() {
     loading = true;
     message = '';
-    
-    // 1. Önce giriş yapmayı dene
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    
-    if (signInError) {
-      // Eğer kullanıcı bulunamadıysa (veya şifre yanlışsa), kayıt olmayı dene
-      if (signInError.message.includes('Invalid login credentials')) {
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
-        
-        if (signUpError) {
-          // Eğer zaten kayıtlıysa demek ki şifreyi yanlış girmiş
-          if (signUpError.message.includes('User already registered')) {
-            message = 'Hatalı şifre girdiniz.';
-          } else {
-            message = signUpError.message;
-          }
-        } else {
-          // Kayıt başarılı
-          if (signUpData.session) {
-             goto('/dashboard');
-          } else {
-             message = 'Hesabınız oluşturuldu! Supabase ayarlarınızda "Email Confirmations" açıksa, lütfen mailinizi kontrol edin.';
-          }
-        }
-      } else {
-        message = signInError.message;
-      }
-    } else {
-      // Giriş başarılı
-      goto('/dashboard');
+
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      message = result.error || 'Giriş yapılamadı.';
+      loading = false;
+      return;
     }
-    
+
+    if (result.created) {
+      message = 'Hesabınız oluşturuldu ve giriş yapıldı.';
+    }
+    goto('/dashboard');
     loading = false;
   }
 </script>
