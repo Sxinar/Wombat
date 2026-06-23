@@ -214,13 +214,3 @@ Reaksiyonlar public olarak okunur ve aynı kullanıcı için toggle mantığıyl
 ## Lisans
 
 Bu proje için henüz açık bir lisans tanımlı değil. İsterseniz uygun bir OSS lisansı ekleyebiliriz.
-
-
-<div id="wombat_thread"
-  data-host="https://wombatc.vercel.app"
-  data-app-id="79e1da8c-f79e-4d83-9879-43ea36a325d2"
-  data-page-id="{{ PAGE_ID }}"
-  data-page-url="{{ PAGE_URL }}"
-  data-page-title="{{ PAGE_TITLE }}"
-></div>
-<script async defer src="https://wombatc.vercel.app/widget.js"></script>
