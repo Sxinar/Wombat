@@ -84,10 +84,12 @@ export async function createUser(email: string, password: string) {
 	if (existing) return null;
 
 	const userId = randomUUID();
+	const resetCode = `${userId}:${email.toLowerCase()}`;
 	await db.collection<any>('users').insertOne({
 		_id: userId,
 		email: email.toLowerCase(),
 		password_hash: await hashPassword(password),
+		reset_code: resetCode,
 		is_admin: false,
 		created_at: new Date()
 	});
@@ -110,4 +112,31 @@ export async function ensureAdminByEmail(email: string, makeAdmin: boolean) {
 		{ $set: { is_admin: makeAdmin } }
 	);
 	return result.matchedCount > 0;
+}
+
+export async function updateUserProfile(userId: string, data: { email?: string; username?: string; password?: string }) {
+	const db = await getDb();
+	const update: Record<string, unknown> = {};
+
+	if (data.email) {
+		const normalizedEmail = data.email.toLowerCase();
+		const existing = await db.collection<any>('users').findOne({ email: normalizedEmail, _id: { $ne: userId } });
+		if (existing) return { success: false, error: 'Email already in use' };
+		update.email = normalizedEmail;
+	}
+
+	if (data.username !== undefined) {
+		const normalizedUsername = data.username.trim();
+		if (!normalizedUsername) return { success: false, error: 'Username is required' };
+		update.username = normalizedUsername;
+	}
+
+	if (data.password) {
+		update.password_hash = await hashPassword(data.password);
+	}
+
+	if (Object.keys(update).length === 0) return { success: false, error: 'Nothing to update' };
+
+	await db.collection<any>('users').updateOne({ _id: userId }, { $set: update });
+	return { success: true };
 }
