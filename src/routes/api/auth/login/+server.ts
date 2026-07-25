@@ -29,5 +29,5 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	}
 
 	await setSessionCookie(cookies, userId);
-	return json({ success: true, created });
+	return json({ success: true, created, user: { id: userId } });
 };

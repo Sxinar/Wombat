@@ -8,7 +8,7 @@ import { getDb } from './mongo';
 const encoder = new TextEncoder();
 const secret = encoder.encode(JWT_SECRET);
 const SESSION_COOKIE = 'wombat_session';
-const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 
 export type SessionUser = {
 	id: string;
@@ -44,7 +44,8 @@ export async function setSessionCookie(cookie: import('@sveltejs/kit').Cookies, 
 		httpOnly: true,
 		sameSite: 'lax',
 		secure: !dev,
-		maxAge: SESSION_TTL_MS / 1000
+		maxAge: SESSION_TTL_MS / 1000,
+		expires: new Date(Date.now() + SESSION_TTL_MS)
 	});
 }
 
