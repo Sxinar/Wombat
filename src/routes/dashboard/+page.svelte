@@ -122,16 +122,27 @@
       </div>
     </div>
 
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-sm mb-8">
-      <h2 class="text-lg font-semibold text-zinc-50 mb-2">Admin yönetimi</h2>
-      <p class="text-sm text-zinc-500 mb-4">Bir kullanıcıyı admin yapmak ya da yetkisini almak için e-posta gir.</p>
-      {#if adminMessage}
-        <div class="mb-4 text-sm bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-zinc-300">{adminMessage}</div>
-      {/if}
-      <div class="flex flex-col sm:flex-row gap-2">
-        <input type="email" bind:value={adminEmail} placeholder="admin@example.com" class="flex-1 px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-950 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-100" />
-        <button disabled={adminBusy} on:click={() => setAdminStatus(true)} class="px-4 py-2 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 disabled:opacity-50">Admin yap</button>
-        <button disabled={adminBusy} on:click={() => setAdminStatus(false)} class="px-4 py-2 rounded-xl border border-zinc-700 text-zinc-50 hover:bg-zinc-800 disabled:opacity-50">Yetki kaldır</button>
+    <div class="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr] gap-4 mb-8">
+      <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-sm">
+        <h2 class="text-lg font-semibold text-zinc-50 mb-2">Admin yönetimi</h2>
+        <p class="text-sm text-zinc-500 mb-4">Bir kullanıcıyı admin yapmak ya da yetkisini almak için e-posta gir.</p>
+        {#if adminMessage}
+          <div class="mb-4 text-sm bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-zinc-300">{adminMessage}</div>
+        {/if}
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input type="email" bind:value={adminEmail} placeholder="admin@example.com" class="flex-1 px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-950 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-100" />
+          <button disabled={adminBusy} on:click={() => setAdminStatus(true)} class="px-4 py-2 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 disabled:opacity-50">Admin yap</button>
+          <button disabled={adminBusy} on:click={() => setAdminStatus(false)} class="px-4 py-2 rounded-xl border border-zinc-700 text-zinc-50 hover:bg-zinc-800 disabled:opacity-50">Yetki kaldır</button>
+        </div>
+      </div>
+
+      <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-sm">
+        <h3 class="text-sm uppercase tracking-wide text-zinc-500 mb-3">Hızlı özet</h3>
+        <ul class="space-y-2 text-sm text-zinc-300">
+          <li>• {stats.approvedComments} onaylı yorum</li>
+          <li>• {stats.pendingComments} bekleyen yorum</li>
+          <li>• {stats.recentComments} yorum bu hafta</li>
+        </ul>
       </div>
     </div>
   {/if}

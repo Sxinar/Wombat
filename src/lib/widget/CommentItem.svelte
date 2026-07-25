@@ -14,7 +14,7 @@
     onReact: (id: string, emoji: string) => void;
   }>();
 
-  const reactionEmojis = ['👍', '❤️', '😂', '🎉'];
+  const reactionEmojis = ['👍', '❤️', '�', '🎉', '👏', '💡'];
 
   function parseMarkdown(content: string) {
     const rawHtml = marked.parse(content) as string;
@@ -52,7 +52,7 @@
     <div class="reactions">
       {#each reactionEmojis as emoji}
         <button class="reaction-btn" onclick={() => onReact(comment.id, emoji)}>
-          <span>{emoji}</span>
+          <span class="emoji-icon">{emoji}</span>
           <span>{getReactionCount(emoji)}</span>
         </button>
       {/each}
@@ -140,6 +140,14 @@
     align-items: center;
     gap: 0.35rem;
     cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .reaction-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  }
+  .emoji-icon {
+    font-size: 0.9rem;
   }
   .reply-btn {
     background: transparent;
